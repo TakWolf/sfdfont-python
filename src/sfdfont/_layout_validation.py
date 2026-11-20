@@ -1,8 +1,9 @@
 import re
 
-from sfdfont._layout import CONTEXT_KEYS, KERN_CLASS_KEYS, LayoutReader
+from sfdfont._layout import AAT_KEYS, CONTEXT_KEYS, KERN_CLASS_KEYS, LayoutReader
 from sfdfont._reader import Reader
 from sfdfont._strings import decode_text
+from sfdfont.aat import SfdStateMachine
 from sfdfont.error import SfdParseError, SfdValidationError
 from sfdfont.layout import SfdContext, SfdKerningClass, SfdLookup
 
@@ -27,6 +28,7 @@ def validate_layout(font) -> None:
         lookups = [SfdLookup.from_record(r) for r in font.metadata.records if r.keyword == 'Lookup:']
         contexts = [SfdContext.from_record(r) for r in font.metadata.records if r.keyword in CONTEXT_KEYS]
         kerns = [SfdKerningClass.from_record(r) for r in font.metadata.records if r.keyword in KERN_CLASS_KEYS]
+        machines = [SfdStateMachine.from_record(r) for r in font.metadata.records if r.keyword in AAT_KEYS]
         lookup_names = {}
         subtables = {}
         for lookup in lookups:
@@ -102,7 +104,47 @@ def validate_layout(font) -> None:
                         need(action.lookup in definitions, f'undefined nested lookup tag {action.lookup!r}')
                     if source is not None:
                         graph.setdefault(source, []).append(action.lookup)
+        machine_types = {
+            'MacIndic': 253,
+            'MacContext': 254,
+            'MacInsert': 255,
+            'MacKern': 511,
+            'MacLigature': 4,
+            'MacSimple': 1,
+        }
+        for machine in machines:
+            for group in machine.classes[4:]:
+                check_names(group)
+            source = None
+            if machine.subtable is not None:
+                kind = machine_types[machine.keyword.removesuffix('2:')]
+                owner = subtable(machine.subtable, {kind})
+                need(machine.subtable not in used, 'multiple layout blocks for one subtable')
+                used.add(machine.subtable)
+                source = owner.name
+            for row in machine.states:
+                for state in row:
+                    check_names(state.mark_insert)
+                    check_names(state.current_insert)
+                    for target in (state.mark_lookup, state.current_lookup):
+                        if target is None:
+                            continue
+                        if source is not None:
+                            need(target in lookup_names, f'undefined nested AAT lookup {target!r}')
+                            need(lookup_names[target].lookup_type < 256, 'AAT context requires substitution lookup')
+                            graph[source].append(target)
+                        else:
+                            need(target in definitions, f'undefined nested AAT lookup tag {target!r}')
         cycles(graph, 'layout')
+        for record in font.metadata.records:
+            if record.keyword == 'Justify:':
+                from sfdfont._extended import read_justify
+
+                extender_glyphs, jstf_lookups = read_justify(Reader(record.value))
+                check_names(extender_glyphs)
+                for target, maximum in jstf_lookups:
+                    need(target in lookup_names, f'undefined JSTF lookup {target!r}')
+                    need(not maximum or lookup_names[target].lookup_type >= 256, 'JSTF maximum requires GPOS lookup')
         for kern in kerns:
             check_names(kern.first_classes)
             check_names(kern.second_classes)
@@ -180,4 +222,7 @@ def layout_identity(font):
         elif record.keyword in KERN_CLASS_KEYS:
             kern = SfdKerningClass.from_record(record)
             result.append((record.keyword, kern.subtable, kern.script_language_index))
+        elif record.keyword in AAT_KEYS:
+            machine = SfdStateMachine.from_record(record)
+            result.append((record.keyword, machine.subtable, machine.feature, machine.setting))
     return result

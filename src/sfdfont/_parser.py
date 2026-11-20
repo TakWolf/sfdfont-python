@@ -5,6 +5,7 @@ import re
 from typing import BinaryIO
 
 from sfdfont._layout import (
+    AAT_KEYS,
     CONTEXT_KEYS,
     KERN_CLASS_KEYS,
     context_record,
@@ -47,6 +48,18 @@ _UNSUPPORTED = {
     'CIDVersion:',
     'BeginMMFonts:',
     'MMCounts:',
+    'BaseScript:',
+    'JstfExtender:',
+    'JstfLang:',
+    'JstfPrio:',
+    'JstfEnableShrink:',
+    'JstfDisableShrink:',
+    'JstfMaxShrink:',
+    'JstfEnableExtend:',
+    'JstfDisableExtend:',
+    'JstfMaxExtend:',
+    'MacSetting:',
+    'MacName:',
     'MMAxis:',
     'MMPositions:',
     'MMWeights:',
@@ -109,6 +122,22 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    if key in AAT_KEYS:
+        from sfdfont._aat import machine_record
+
+        return machine_record(reader, key)
+    if re.fullmatch(r'MATH:[A-Za-z][A-Za-z0-9]*:', key):
+        from sfdfont._extended import math_record
+
+        return math_record(reader, key)
+    if key in ('BaseHoriz:', 'BaseVert:', 'Justify:', 'MacFeat:'):
+        from sfdfont._extended import base_record, justify_record, mac_features_record
+
+        if key == 'Justify:':
+            return justify_record(reader, key)
+        if key == 'MacFeat:':
+            return mac_features_record(reader, key)
+        return base_record(reader, key)
     if key in CONTEXT_KEYS:
         return context_record(reader, key)
     if key == 'TableOrder:':

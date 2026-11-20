@@ -1,5 +1,6 @@
 """Read and write FontForge Spline Font Database files in pure Python."""
 
+from sfdfont.aat import SfdState, SfdStateMachine
 from sfdfont.bitmap import SfdBitmapGlyph, SfdBitmapProperty, SfdBitmapReference, SfdBitmapStrike
 from sfdfont.cid import SfdCidInfo
 from sfdfont.error import SfdError, SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
@@ -25,6 +26,8 @@ from sfdfont.reference import SfdReference
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdState',
+    'SfdStateMachine',
     'SfdCidInfo',
     'SfdAxisMap',
     'SfdMacName',

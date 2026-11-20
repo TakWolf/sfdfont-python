@@ -31,7 +31,12 @@ KERN_CLASS_KEYS = {
     'KernClass3:',
     'VKernClass3:',
 }
-LAYOUT_KEYS = CONTEXT_KEYS | KERN_CLASS_KEYS | {'Lookup:', 'TableOrder:'}
+AAT_KEYS = {
+    f'Mac{kind}{suffix}:'
+    for kind in ('Indic', 'Context', 'Ligature', 'Simple', 'Kern', 'Insert')
+    for suffix in ('', '2')
+}
+LAYOUT_KEYS = CONTEXT_KEYS | KERN_CLASS_KEYS | AAT_KEYS | {'Lookup:', 'TableOrder:'}
 
 
 def version_matches(key: str, version: str) -> bool:
@@ -39,7 +44,7 @@ def version_matches(key: str, version: str) -> bool:
         return version != '1.0'
     if key == 'TableOrder:':
         return version == '1.0'
-    if key in CONTEXT_KEYS | KERN_CLASS_KEYS:
+    if key in CONTEXT_KEYS | KERN_CLASS_KEYS | AAT_KEYS:
         modern = key.endswith(('2:', '3:'))
         return modern == (version != '1.0')
     return True

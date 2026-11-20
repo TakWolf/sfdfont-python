@@ -80,6 +80,11 @@ def contours(items) -> None:
 
 
 def validate(font, *, layout: bool = True) -> None:
+    from sfdfont._extended import EXTENDED_KEYS
+
+    def font_record(record) -> bool:
+        return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS or record.keyword.startswith('MATH:')
+
     if font.subfonts or font.cid is not None:
         from sfdfont._family import validate_cid
 
@@ -136,8 +141,8 @@ def validate(font, *, layout: bool = True) -> None:
             else:
                 check(layer.paint is None, 'paint settings require Type 3 foreground layers')
             contours(layer.contours)
-            check(not any(record.keyword in LAYOUT_KEYS for record in layer.records), 'layout record in glyph layer')
-        check(not any(record.keyword in LAYOUT_KEYS for record in glyph.records), 'layout record in glyph')
+            check(not any(font_record(record) for record in layer.records), 'layout record in glyph layer')
+        check(not any(font_record(record) for record in glyph.records), 'layout record in glyph')
     for encoding, target in font.encoding_aliases.items():
         number(encoding, 'alias encoding', 0)
         number(target, 'alias glyph ID', 0)
