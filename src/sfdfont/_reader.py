@@ -29,6 +29,9 @@ class Reader:
             raise SfdLimitError('max_bytes exceeded')
         self.pos = 0
         self.payload_bytes = 0
+        self.point_count = 0
+        self.glyph_count = 0
+        self.next_gid = 0
 
     def fail(self, message: str, kind: type[SfdParseError] = SfdParseError) -> None:
         raise kind(message, offset=self.pos, line=self.data.count(b'\n', 0, self.pos) + 1)

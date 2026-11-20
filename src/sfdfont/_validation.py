@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 
 from sfdfont._layout import LAYOUT_KEYS, version_matches
-from sfdfont.error import SfdValidationError
+from sfdfont.error import SfdParseError, SfdValidationError
 
 
 def check(condition: bool, message: str) -> None:
@@ -95,6 +95,7 @@ def validate(font, *, layout: bool = True) -> None:
         validate_mm(font)
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
     for record in font.metadata.records:
+        check(record.keyword != 'UndoRedoHistory', 'undo history belongs in a glyph layer')
         check(
             version_matches(record.keyword, font.version), f'layout record {record.keyword} conflicts with SFD version'
         )
@@ -141,9 +142,19 @@ def validate(font, *, layout: bool = True) -> None:
                 validate_paint(layer.paint)
             else:
                 check(layer.paint is None, 'paint settings require Type 3 foreground layers')
+            for record in layer.records:
+                if record.keyword == 'UndoRedoHistory':
+                    from sfdfont._history import history_layer
+
+                    check(font.version in ('3.1', '3.2'), 'undo history requires SFD 3.1 or 3.2')
+                    try:
+                        check(history_layer(record) == layer.index, 'undo history layer mismatch')
+                    except SfdParseError as error:
+                        raise SfdValidationError(str(error)) from error
             contours(layer.contours)
             check(not any(font_record(record) for record in layer.records), 'layout record in glyph layer')
         check(not any(font_record(record) for record in glyph.records), 'layout record in glyph')
+        check(not any(r.keyword == 'UndoRedoHistory' for r in glyph.records), 'undo history belongs in a glyph layer')
     for encoding, target in font.encoding_aliases.items():
         number(encoding, 'alias encoding', 0)
         number(target, 'alias glyph ID', 0)

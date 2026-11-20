@@ -122,6 +122,10 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    if key == 'UndoRedoHistory':
+        from sfdfont._history import history_record
+
+        return history_record(reader, key)
     if key in AAT_KEYS:
         from sfdfont._aat import machine_record
 
@@ -341,6 +345,16 @@ def glyph(reader: Reader, font: SfdFont, *, cid_child: bool = False) -> SfdGlyph
                 result.layer_count = values[0]
             elif values[0] != len(font.layer_infos):
                 reader.fail('glyph LayerCount differs from font')
+        elif key == 'UndoRedoHistory':
+            from sfdfont._history import history_layer
+
+            item = record(reader, key)
+            index = history_layer(item)
+            layer = next((v for v in result.layers if v.index == index), None)
+            if layer is None:
+                layer = SfdLayer(index)
+                result.layers.append(layer)
+            layer.records.append(item)
         elif key == 'Flags:':
             if key in seen:
                 reader.fail('duplicate glyph Flags')
@@ -400,9 +414,6 @@ def glyph(reader: Reader, font: SfdFont, *, cid_child: bool = False) -> SfdGlyph
 
 def parse_font(stream: bytes | bytearray | BinaryIO, limits: SfdReadLimits | None) -> SfdFont:
     reader = Reader(stream, limits)
-    reader.point_count = 0
-    reader.next_gid = 0
-    reader.glyph_count = 0
     try:
         font = _parse_font(reader)
         reader.whitespace()
