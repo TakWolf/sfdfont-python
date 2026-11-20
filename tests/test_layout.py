@@ -1,6 +1,6 @@
 import pytest
 
-from sfdfont import SfdFont, SfdLimitError, SfdParseError, SfdReadLimits
+from sfdfont import SfdFont, SfdLimitError, SfdParseError, SfdReadLimits, SfdRecord, SfdValidationError
 from sfdfont._parser import record
 from sfdfont._reader import Reader
 
@@ -106,3 +106,51 @@ def test_horizontal_and_vertical_classes_retained(assets_dir):
     assert classes['KernClass:'].value.startswith(b'4 4 0 0')
     assert b'-200 -146' in classes['KernClass:'].value
     assert classes['VKernClass:'].value.startswith(b'3 3 0 0')
+
+
+@pytest.mark.parametrize(
+    'definition',
+    [
+        b'1 0 0 "single" { "subtable" ("suffix") } [\'liga\' (\'latn\' <\'dflt\' >)]',
+        b"258 0 1 \"pair\" { \"subtable\" (1)[20,-40,7] } ['kern' ('latn' <'dflt' 'TRK '>)]",
+        b'4 0 0 "mac" { "subtable" } [<1,2> (\'latn\' <\'dflt\'>)]',
+        b'5 0 0 "empty" {} []',
+    ],
+)
+def test_lookup_boundaries(definition):
+    reader = Reader(definition + b'\nNext: value\n')
+    parsed = record(reader, 'Lookup:')
+    assert parsed.value == definition
+    assert reader.word() == 'Next:'
+
+
+@pytest.mark.parametrize(
+    'definition',
+    [
+        b'1 0 0 "unterminated',
+        b'1 0 0 "name" { "subtable"',
+        b'1 0 0 "name" { "subtable" (2) } []',
+        b"1 0 0 \"name\" {} ['liga' ('latn' <'dflt'>)",
+        b'1 0 0 "" {} []',
+    ],
+)
+def test_malformed_lookup(definition):
+    with pytest.raises(SfdParseError):
+        record(Reader(definition), 'Lookup:')
+
+
+@pytest.mark.parametrize(
+    ('version', 'key'),
+    [
+        ('1.0', 'Lookup:'),
+        ('1.0', 'ChainSub2:'),
+        ('1.0', 'KernClass2:'),
+        ('3.2', 'KernClass:'),
+        ('3.2', 'TableOrder:'),
+    ],
+)
+def test_layout_version_mismatch(version, key):
+    font = SfdFont(version=version)
+    font.metadata.records.append(SfdRecord(key))
+    with pytest.raises(SfdValidationError, match='conflicts with SFD version'):
+        font.validate()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 
+from sfdfont._layout import LAYOUT_KEYS, version_matches
 from sfdfont.error import SfdValidationError
 
 
@@ -68,6 +69,10 @@ def contours(items) -> None:
 
 def validate(font) -> None:
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
+    for record in font.metadata.records:
+        check(
+            version_matches(record.keyword, font.version), f'layout record {record.keyword} conflicts with SFD version'
+        )
     number(font.encoding_size, 'encoding size', 0)
     number(font.metadata.ascent, 'ascent', 0)
     number(font.metadata.descent, 'descent', 0)
@@ -99,6 +104,8 @@ def validate(font) -> None:
         check(all(index in indices for index in layer_ids), 'undefined glyph layer')
         for layer in glyph.layers:
             contours(layer.contours)
+            check(not any(record.keyword in LAYOUT_KEYS for record in layer.records), 'layout record in glyph layer')
+        check(not any(record.keyword in LAYOUT_KEYS for record in glyph.records), 'layout record in glyph')
     for encoding, target in font.encoding_aliases.items():
         number(encoding, 'alias encoding', 0)
         number(target, 'alias glyph ID', 0)

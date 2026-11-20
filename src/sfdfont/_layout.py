@@ -31,6 +31,18 @@ KERN_CLASS_KEYS = {
     'KernClass3:',
     'VKernClass3:',
 }
+LAYOUT_KEYS = CONTEXT_KEYS | KERN_CLASS_KEYS | {'Lookup:', 'TableOrder:'}
+
+
+def version_matches(key: str, version: str) -> bool:
+    if key == 'Lookup:':
+        return version != '1.0'
+    if key == 'TableOrder:':
+        return version == '1.0'
+    if key in CONTEXT_KEYS | KERN_CLASS_KEYS:
+        modern = key.endswith(('2:', '3:'))
+        return modern == (version != '1.0')
+    return True
 
 
 class LayoutReader:
@@ -249,4 +261,56 @@ def kern_class_record(reader: Reader, key: str) -> SfdRecord:
             stream.integer(maximum=0x7FFFFFFF)
         stream.integer(minimum=-32768, maximum=32767)
         stream.device_table()
+    return SfdRecord(key, reader.data[start : reader.pos].strip())
+
+
+def lookup_record(reader: Reader, key: str) -> SfdRecord:
+    start = reader.pos
+    stream = LayoutReader(reader)
+    stream.integer()
+    stream.integer(maximum=0xFFFFFFFF)
+    stream.integer(maximum=1)
+    if not stream.quoted():
+        reader.fail('empty lookup name')
+    if stream.peek() == b'{':
+        stream.expect(b'{')
+        while stream.peek() != b'}':
+            if not stream.quoted():
+                reader.fail('empty lookup subtable name')
+            if stream.peek() == b'(':
+                stream.expect(b'(')
+                if stream.peek() == b'"':
+                    stream.quoted()
+                else:
+                    stream.integer(maximum=1)
+                stream.expect(b')')
+            if stream.peek() == b'[':
+                stream.expect(b'[')
+                stream.integer(minimum=-32768, maximum=32767)
+                stream.expect(b',')
+                stream.integer(minimum=-32768, maximum=32767)
+                stream.expect(b',')
+                stream.integer(maximum=7)
+                stream.expect(b']')
+        stream.expect(b'}')
+    if stream.peek() == b'[':
+        stream.expect(b'[')
+        while stream.peek() != b']':
+            if stream.peek() == b'<':
+                stream.expect(b'<')
+                stream.integer()
+                stream.expect(b',')
+                stream.integer()
+                stream.expect(b'>')
+            else:
+                stream.tag()
+            stream.expect(b'(')
+            while stream.peek() != b')':
+                stream.tag()
+                stream.expect(b'<')
+                while stream.peek() != b'>':
+                    stream.tag()
+                stream.expect(b'>')
+            stream.expect(b')')
+        stream.expect(b']')
     return SfdRecord(key, reader.data[start : reader.pos].strip())

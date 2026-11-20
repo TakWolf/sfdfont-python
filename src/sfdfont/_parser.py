@@ -4,7 +4,14 @@ import math
 import re
 from typing import BinaryIO
 
-from sfdfont._layout import CONTEXT_KEYS, KERN_CLASS_KEYS, context_record, kern_class_record, table_order_record
+from sfdfont._layout import (
+    CONTEXT_KEYS,
+    KERN_CLASS_KEYS,
+    context_record,
+    kern_class_record,
+    lookup_record,
+    table_order_record,
+)
 from sfdfont._reader import Reader
 from sfdfont._strings import decode_text, decode_utf7
 from sfdfont.error import SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
@@ -52,7 +59,6 @@ _UNSUPPORTED = {
     'PickledDataWithLists:',
     'BeginUndo',
     'BeginRedo',
-    'Lookup:',
 }
 
 
@@ -98,6 +104,8 @@ def record(reader: Reader, key: str) -> SfdRecord:
         return table_order_record(reader, key)
     if key in KERN_CLASS_KEYS:
         return kern_class_record(reader, key)
+    if key == 'Lookup:':
+        return lookup_record(reader, key)
     if key in ('StartChar:', 'BeginChars:', 'BitmapFont:', 'BDFChar:', 'BDFRefChar:', 'DupEnc:'):
         reader.fail(f'misplaced structural record {key}')
     if key in ('PickledData:', 'PickledDataWithLists:'):
