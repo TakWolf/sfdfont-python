@@ -13,6 +13,7 @@ from sfdfont._layout import (
     lookup_record,
     table_order_record,
 )
+from sfdfont._math import GLYPH_MATH_KEYS, math_constant
 from sfdfont._reader import Reader
 from sfdfont._strings import decode_text, decode_utf7
 from sfdfont.error import SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
@@ -132,8 +133,8 @@ def record(reader: Reader, key: str) -> SfdRecord:
         from sfdfont._aat import machine_record
 
         return machine_record(reader, key)
-    if re.fullmatch(r'MATH:[A-Za-z][A-Za-z0-9]*:', key):
-        from sfdfont._extended import math_record
+    if key in GLYPH_MATH_KEYS or math_constant(key):
+        from sfdfont._math import math_record
 
         return math_record(reader, key)
     if key in ('BaseHoriz:', 'BaseVert:', 'Justify:', 'MacFeat:'):

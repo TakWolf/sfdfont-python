@@ -122,6 +122,35 @@ replace the entry in `font.metadata.records` to apply changes. Likewise,
 `font.find_lookup(name)` returns an independent lookup; use `font.set_lookup()`
 to replace or append its definition.
 
+### Edit MATH data
+
+MATH constants and glyph metrics use `SfdMathValue`; assemblies use
+`SfdGlyphAssembly` / `SfdGlyphPart`, size variants use `SfdGlyphVariants`, and
+corner kerning uses `SfdMathKern` / `SfdMathKernEntry`. These models also use
+`from_record()` / `to_record()`; replace an existing record when editing a field.
+Do not append a second copy of the same glyph field.
+
+```python
+from sfdfont import SfdGlyphAssembly, SfdGlyphPart, SfdMathValue
+
+axis_height = SfdMathValue('MATH:AxisHeight:', 250, {12: 1, 13: 0, 14: -1})
+assembly = SfdGlyphAssembly(
+    parts=[
+        SfdGlyphPart('brace.bottom', False, 0, 20, 100),
+        SfdGlyphPart('brace.extender', True, 20, 20, 80),
+        SfdGlyphPart('brace.top', False, 20, 0, 100),
+    ],
+)
+axis_record = axis_height.to_record()
+assembly_record = assembly.to_record()
+```
+
+Device adjustments map each ppem in a contiguous range to a signed correction;
+include explicit zeros for unchanged sizes. Assembly components and variants must
+name existing glyphs in the font. The final corner-kern entry's height is retained
+although OpenType does not use it. See `examples/edit_math.py` for a complete example
+using an upstream test font.
+
 ## Supported formats and boundaries
 
 - SFD versions 1.0, 2.0, 3.0, 3.1 and 3.2, with standard-library-only runtime code.
@@ -145,8 +174,10 @@ to replace or append its definition.
   positioning, horizontal/vertical kerning classes (legacy, version 2 and version 3),
   and AAT state machines. Lookup ownership, glyph references and dependency cycles
   are checked. Shaping is outside the scope of the library.
-- BASE baselines and language extents, JSTF justification, MATH constants/device
-  adjustments and Mac feature names are structurally checked and retained as records.
+- BASE baselines and language extents, JSTF justification and Mac feature names
+  are structurally checked and retained as records. Editable MATH models cover
+  constants, italic/accent corrections, size variants, glyph assemblies and all
+  four corner-kern tables, with device adjustments and glyph dependency checks.
 - Type 3 fonts through `font.multilayer`, per-glyph `layer_count` and `layer.paint`.
   `SfdPaint` stores fill/stroke settings, colours, opacity, pen transforms and dashes.
   `SfdGradient` / `SfdGradientStop` and `SfdPattern` describe gradient and tiled
@@ -175,7 +206,7 @@ Unsupported structures raise `SfdUnsupportedError`; malformed structures raise
 Writing normalizes whitespace and numeric formatting; it does not promise
 byte-for-byte reproduction. For loaded fonts retaining uninterpreted records or
 payloads, metadata text, glyph advances/flags, bitmap pixels, guidelines, paint
-settings and validated layout parameters can be edited. Glyph identities, outlines,
+settings and validated layout/MATH parameters can be edited. Glyph identities, outlines,
 layer structure and uninterpreted data remain protected when retained records may
 depend on them. Incompatible edits raise `SfdValidationError` before the destination
 file is opened. Explicitly removing dependent opaque data permits supported geometry

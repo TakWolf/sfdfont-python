@@ -20,15 +20,6 @@ def finish(stream: LayoutReader) -> None:
         stream.reader.fail('trailing extended record data')
 
 
-def math_record(reader: Reader, key: str) -> SfdRecord:
-    value = reader.line()
-    stream = LayoutReader(Reader(value, reader.limits))
-    stream.integer(-32768, 32767)
-    stream.device_table()
-    finish(stream)
-    return SfdRecord(key, value)
-
-
 def base_record(reader: Reader, key: str) -> SfdRecord:
     start = reader.pos
     stream = LayoutReader(Reader(reader.line(), reader.limits))

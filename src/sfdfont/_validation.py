@@ -226,4 +226,7 @@ def validate(font, *, layout: bool = True) -> None:
     from sfdfont._layout_validation import validate_layout
 
     if layout:
+        from sfdfont._math import validate_math
+
         validate_layout(font)
+        validate_math(font)
