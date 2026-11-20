@@ -38,7 +38,12 @@ AAT_KEYS = {
 }
 SUBSTITUTION_KEYS = {'Substitution2:', 'MultipleSubs2:', 'AlternateSubs2:', 'Ligature2:'}
 PST_KEYS = SUBSTITUTION_KEYS | {'Position2:', 'PairPos2:', 'LCarets2:'}
-LAYOUT_KEYS = CONTEXT_KEYS | KERN_CLASS_KEYS | AAT_KEYS | {'Lookup:', 'TableOrder:', 'AnchorClass2:'}
+LAYOUT_KEYS = (
+    CONTEXT_KEYS
+    | KERN_CLASS_KEYS
+    | AAT_KEYS
+    | {'Lookup:', 'TableOrder:', 'AnchorClass2:', 'MarkAttachClasses:', 'MarkAttachSets:'}
+)
 
 
 def version_matches(key: str, version: str) -> bool:

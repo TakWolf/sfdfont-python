@@ -121,6 +121,10 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    if key in ('MarkAttachClasses:', 'MarkAttachSets:'):
+        from sfdfont._marks import mark_record
+
+        return mark_record(reader, key)
     from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS, ROOT_LAYOUT_KEYS, layout_record
 
     if key in GLYPH_LAYOUT_KEYS | ROOT_LAYOUT_KEYS:

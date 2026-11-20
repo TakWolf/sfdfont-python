@@ -122,6 +122,32 @@ replace the entry in `font.metadata.records` to apply changes. Likewise,
 `font.find_lookup(name)` returns an independent lookup; use `font.set_lookup()`
 to replace or append its definition.
 
+### Mark attachment classes and filtering sets
+
+`SfdMarkClasses` and `SfdMarkSets` read and write the counted multiline
+`MarkAttachClasses:` and `MarkAttachSets:` records. Each `SfdMarkGroup` contains
+a display name and a list of existing glyph names.
+
+```python
+from sfdfont import SfdMarkClasses, SfdMarkGroup, SfdMarkSets
+
+classes = SfdMarkClasses([SfdMarkGroup('above', ['acutecomb', 'gravecomb'])])
+sets = SfdMarkSets([SfdMarkGroup('acute-only', ['acutecomb'])])
+class_record = classes.to_record()
+set_record = sets.to_record()
+```
+
+The classes list omits implicit class 0: its first group has index 1. The first
+filtering set has index 0. Lookup flags select a class with `class_index << 8`,
+or a filtering set with `0x10 | (set_index << 16)`. Class members must be disjoint;
+filtering sets may overlap. References and table duplication are checked when
+validating the font. Names and group order remain protected while other opaque
+data is retained, and existing groups' membership can be edited.
+
+These models also use `from_record()` / `to_record()` with explicit replacement
+in `font.metadata.records`. See `examples/create_mark_filter.py` for a complete
+example that writes empty combining glyphs and a filtered substitution lookup.
+
 ### Edit glyph positioning and anchors
 
 `SfdPosition` and `SfdPairPosition` contain `SfdPositionValue` objects with offsets,
@@ -215,7 +241,8 @@ using an upstream test font.
   and instructions/charstrings are not executed.
 - Editable lookup definitions, contextual/chained/reverse substitution and
   positioning, horizontal/vertical kerning classes (legacy, version 2 and version 3),
-  and AAT state machines. Glyph positioning, substitutions, pair kerning, ligature
+  and AAT state machines. Mark attachment classes/filtering sets include counted
+  multiline parsing, membership editing and lookup flag index validation. Glyph positioning, substitutions, pair kerning, ligature
   carets and anchors also have editable models. Lookup ownership, glyph references and dependency cycles
   are checked. Shaping is outside the scope of the library.
 - BASE baselines and language extents, JSTF justification and Mac feature names

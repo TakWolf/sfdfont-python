@@ -31,6 +31,9 @@ def validate_layout(font) -> None:
         contexts = [SfdContext.from_record(r) for r in font.metadata.records if r.keyword in CONTEXT_KEYS]
         kerns = [SfdKerningClass.from_record(r) for r in font.metadata.records if r.keyword in KERN_CLASS_KEYS]
         machines = [SfdStateMachine.from_record(r) for r in font.metadata.records if r.keyword in AAT_KEYS]
+        from sfdfont._marks import validate_marks
+
+        validate_marks(font, lookups, contexts)
         lookup_names = {}
         subtables = {}
         for lookup in lookups:
@@ -216,4 +219,8 @@ def layout_identity(font):
         elif record.keyword == 'AnchorClass2:':
             classes = SfdAnchorClasses.from_record(record).classes
             result.append((record.keyword, tuple((v.name, v.subtable) for v in classes)))
+        elif record.keyword in ('MarkAttachClasses:', 'MarkAttachSets:'):
+            from sfdfont._marks import mark_identity
+
+            result.append(mark_identity(record))
     return result
