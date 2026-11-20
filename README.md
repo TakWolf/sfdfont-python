@@ -13,79 +13,50 @@ pip install sfdfont
 
 ## Usage
 
-### Create
+### Create outlines
 
 ```python
-import shutil
-
-from examples import BUILD_DIR
 from sfdfont import SfdContour, SfdFont, SfdGlyph, SfdLayer, SfdPoint
 
-
-def main() -> None:
-    outputs_dir = BUILD_DIR.joinpath('create')
-    if outputs_dir.exists():
-        shutil.rmtree(outputs_dir)
-    outputs_dir.mkdir(parents=True)
-
-    font = SfdFont()
-
-    font.metadata.font_name = 'Example'
-    font.metadata.family_name = 'Example'
-    font.metadata.full_name = 'Example Regular'
-    font.metadata.comments = 'Created with sfdfont. 中文与 emoji 😀'
-
-    font.glyphs.append(
+contour = SfdContour(
+    [
+        SfdPoint(0, 0),
+        SfdPoint(300, 700, 'l'),
+        SfdPoint(600, 0, 'l'),
+        SfdPoint(0, 0, 'l'),
+    ]
+)
+font = SfdFont(
+    glyphs=[
         SfdGlyph(
             name='A',
             glyph_id=0,
             encoding=65,
             unicode=65,
             width=600,
-            layers=[
-                SfdLayer(
-                    index=1,
-                    contours=[
-                        SfdContour(
-                            [
-                                SfdPoint(0, 0),
-                                SfdPoint(300, 700, 'l'),
-                                SfdPoint(600, 0, 'l'),
-                                SfdPoint(0, 0, 'l'),
-                            ]
-                        )
-                    ],
-                )
-            ],
-        )
-    )
-
-    font.save(outputs_dir.joinpath('example.sfd'))
-
-
-if __name__ == '__main__':
-    main()
+            layers=[SfdLayer(index=1, contours=[contour])],
+        ),
+    ]
+)
+font.metadata.font_name = 'OutlineExample'
+font.save('outlines.sfd')
 ```
 
-### Load
+See `examples/create_outlines.py` for a complete example.
+
+### Load and save
 
 ```python
-from examples import ASSETS_DIR
+from examples import ASSETS_DIR, BUILD_DIR
 from sfdfont import SfdFont
 
-
-def main() -> None:
-    font = SfdFont.load(ASSETS_DIR.joinpath('fontforge', 'Ambrosia.sfd'))
-    print(font.metadata.font_name, font.version)
-    for glyph in font.iter_glyphs():
-        print(glyph.glyph_id, glyph.name, glyph.unicode, glyph.width)
-    for strike in font.bitmap_strikes:
-        print('Bitmap strike:', strike.pixelsize, strike.depth, len(strike.glyphs))
-
-
-if __name__ == '__main__':
-    main()
+font = SfdFont.load(ASSETS_DIR.joinpath('fontforge', 'Ambrosia.sfd'))
+outputs_dir = BUILD_DIR.joinpath('load_save')
+outputs_dir.mkdir(parents=True, exist_ok=True)
+font.save(outputs_dir.joinpath('Ambrosia.sfd'))
 ```
+
+See `examples/load_save.py` for a complete example using the upstream Ambrosia font.
 
 ### Edit layout
 
