@@ -4,7 +4,7 @@ from copy import copy, deepcopy
 from typing import Any
 
 from sfdfont.legacy_names import SfdStyleMapName
-from sfdfont.metrics import SfdFontMetric
+from sfdfont.metrics import SfdFontMetric, SfdFontRealMetric
 from sfdfont.record import SfdRecord
 
 
@@ -184,19 +184,21 @@ class SfdMetadata:
     def deepcopy(self) -> SfdMetadata:
         return deepcopy(self)
 
-    def find_metric(self, keyword: str) -> SfdFontMetric | None:
+    def find_metric(self, keyword: str) -> SfdFontMetric | SfdFontRealMetric | None:
         """Decode an independent metric, including historical keyword aliases."""
-        from sfdfont._metrics import SCALAR_KEYS, metric_key
+        from sfdfont._metrics import REAL_KEYS, SCALAR_KEYS, metric_key
         from sfdfont.error import SfdValidationError
 
-        if keyword not in SCALAR_KEYS:
+        if keyword not in SCALAR_KEYS | REAL_KEYS:
             raise SfdValidationError('invalid font metric keyword')
         items = [item for item in self.records if metric_key(item.keyword) == metric_key(keyword)]
         if len(items) > 1:
             raise SfdValidationError('duplicate font metric')
-        return SfdFontMetric.from_record(items[0]) if items else None
+        if not items:
+            return None
+        return SfdFontRealMetric.from_record(items[0]) if keyword in REAL_KEYS else SfdFontMetric.from_record(items[0])
 
-    def set_metric(self, metric: SfdFontMetric) -> None:
+    def set_metric(self, metric: SfdFontMetric | SfdFontRealMetric) -> None:
         """Replace a metric or append it, preserving all other encoded records."""
         from sfdfont._metrics import metric_key
         from sfdfont.error import SfdValidationError

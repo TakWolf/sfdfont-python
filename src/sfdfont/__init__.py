@@ -61,7 +61,7 @@ from sfdfont.mac_features import SfdMacFeature, SfdMacFeatures, SfdMacSetting
 from sfdfont.marks import SfdMarkClasses, SfdMarkGroup, SfdMarkSets
 from sfdfont.math import SfdGlyphAssembly, SfdGlyphPart, SfdGlyphVariants, SfdMathKern, SfdMathKernEntry, SfdMathValue
 from sfdfont.metadata import SfdLanguageNames, SfdMetadata
-from sfdfont.metrics import SfdFontMetric
+from sfdfont.metrics import SfdFontMetric, SfdFontRealMetric
 from sfdfont.os2 import SfdOs2Mask, SfdOs2Vendor, SfdPanose
 from sfdfont.outline import SfdContour, SfdPoint, SfdSpiroPoint
 from sfdfont.paint import SfdGradient, SfdGradientStop, SfdPaint, SfdPattern
@@ -75,6 +75,7 @@ from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdName
 from sfdfont.woff import SfdWoffMetadata
 
 __all__ = [
+    'SfdFontRealMetric',
     'SfdStyleMapName',
     'SfdWoffMetadata',
     'SfdGlyphGroup',

@@ -1,7 +1,7 @@
 from sfdfont._feature_names import decode_feature_names
 from sfdfont._gasp import decode_gasp
 from sfdfont._legacy_names import LEGACY_NAME_KEYS, decode_style_map_name
-from sfdfont._metrics import SCALAR_KEYS, decode_metric, metric_key
+from sfdfont._metrics import REAL_KEYS, SCALAR_KEYS, decode_metric, decode_real_metric, metric_key
 from sfdfont._os2 import OS2_KEYS, decode_os2, vendor_record
 from sfdfont._size import decode_design_size
 from sfdfont._tex import decode_tex_data
@@ -11,6 +11,7 @@ from sfdfont.record import SfdRecord
 
 INFO_KEYS = (
     SCALAR_KEYS
+    | REAL_KEYS
     | OS2_KEYS
     | LEGACY_NAME_KEYS
     | {'GaspTable:', 'DesignSize:', 'OtfFeatName:', 'TeXData:', 'woffMetadata:'}
@@ -32,6 +33,8 @@ def decode_info(item):
         return decode_design_size(item)
     if item.keyword in SCALAR_KEYS:
         return decode_metric(item)
+    if item.keyword in REAL_KEYS:
+        return decode_real_metric(item)
     if item.keyword in OS2_KEYS:
         return decode_os2(item)
     raise SfdParseError('unexpected font information record kind')

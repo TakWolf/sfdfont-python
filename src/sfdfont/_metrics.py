@@ -1,7 +1,7 @@
 import re
 
-from sfdfont.error import SfdParseError
-from sfdfont.metrics import SfdFontMetric
+from sfdfont.error import SfdParseError, SfdValidationError
+from sfdfont.metrics import SfdFontMetric, SfdFontRealMetric
 from sfdfont.record import SfdRecord
 
 SIGNED_KEYS = {
@@ -52,6 +52,8 @@ ALIASES = {
 }
 INT32_KEYS = {'woffMajor:', 'woffMinor:'}
 SCALAR_KEYS = SIGNED_KEYS | BOOL_KEYS | INT32_KEYS | set(ALIASES) | {'PfmFamily:', 'StyleMap:'}
+REAL_KEYS = {'ItalicAngle:', 'UnderlinePosition:', 'UnderlineWidth:', 'StrokeWidth:', 'UFOAscent:', 'UFODescent:'}
+_REAL = re.compile(rb'[+-]?(?:\d+(?:[.,]\d*)?|[.,]\d+)(?:[eE][+-]?\d+)?')
 
 
 def metric_key(key):
@@ -106,3 +108,33 @@ def encode_metric(value):
     number(value.value, 'font metric value', low, high)
     data = f'0x{value.value & 0xFFFFFFFF:04x}'.encode() if key == 'StyleMap:' else str(value.value).encode()
     return SfdRecord(value.keyword, data)
+
+
+def decode_real_metric(item):
+    from sfdfont._parser import real
+
+    if item.keyword not in REAL_KEYS:
+        raise SfdParseError('unexpected real metric kind')
+    data = item.value.strip()
+    if len(data) > 128 or not _REAL.fullmatch(data):
+        raise SfdParseError('invalid real metric value')
+    return SfdFontRealMetric(item.keyword, real(data.replace(b',', b'.')))
+
+
+def encode_real_metric(value):
+    import math
+
+    from sfdfont._writer import scalar
+
+    if value.keyword not in REAL_KEYS or isinstance(value.value, bool) or not isinstance(value.value, (int, float)):
+        raise SfdValidationError('invalid real metric')
+    try:
+        finite = math.isfinite(value.value)
+    except OverflowError:
+        finite = False
+    if not finite:
+        raise SfdValidationError('real metric must be finite')
+    result = SfdRecord(value.keyword, scalar(value.value))
+    if decode_real_metric(result) != value:
+        raise SfdValidationError('real metric would change value when written')
+    return result

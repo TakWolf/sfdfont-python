@@ -236,6 +236,12 @@ accepts the hexadecimal forms FontForge writes. Values and offset flags remain
 separate: the library does not compute absolute metrics from outline bounds or
 validate the font for OpenType generation.
 
+`SfdFontRealMetric(keyword, value)` covers ItalicAngle, UnderlinePosition,
+UnderlineWidth, StrokeWidth, UFOAscent and UFODescent. These use the same
+`find_metric()` / `set_metric()` helpers. Values must be finite; decimal points,
+historical decimal commas and exponents are accepted when reading, and writing
+uses decimal points. No outline transformation or metric scaling is applied.
+
 `SfdPanose.values` contains ten unsigned byte values, defaulting to ten zeros;
 legacy signed-byte spellings are also accepted when reading. `SfdOs2Mask`
 represents `OS2CodePages:` or `OS2UnicodeRanges:` as one unsigned integer with
@@ -492,6 +498,7 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
 - Editable GaspTable ranges and versions, with count, ppem order and integer checks.
 - Optical DesignSize, optional ranges/style IDs and multilingual style names.
 - Editable OS/2, PFM and hhea numeric metrics, styles, offset flags and legacy aliases.
+- Finite real-valued italic angle, underline, stroke-width and UFO metrics.
 - PANOSE byte values, OS/2 Unicode/code-page bitmasks and fixed four-byte vendor IDs.
 - OpenType feature labels and extended character-variant names, with language and
   parameter count checks and explicit preservation of reserved trailer text.

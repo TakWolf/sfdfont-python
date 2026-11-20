@@ -3,6 +3,7 @@ from sfdfont import (
     SfdDesignSize,
     SfdFont,
     SfdFontMetric,
+    SfdFontRealMetric,
     SfdGaspRange,
     SfdGaspTable,
     SfdOs2Mask,
@@ -38,6 +39,15 @@ def main() -> None:
         'StyleMap:': 0x40,
     }.items():
         font.metadata.set_metric(SfdFontMetric(keyword, value))
+    for keyword, value in {
+        'ItalicAngle:': -12.5,
+        'UnderlinePosition:': -100,
+        'UnderlineWidth:': 50,
+        'StrokeWidth:': 2.5,
+        'UFOAscent:': 800.25,
+        'UFODescent:': -200.5,
+    }.items():
+        font.metadata.set_metric(SfdFontRealMetric(keyword, value))
     outputs_dir = BUILD_DIR.joinpath('create_font_info')
     outputs_dir.mkdir(parents=True, exist_ok=True)
     output_path = outputs_dir.joinpath('font_info.sfd')
