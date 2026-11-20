@@ -53,11 +53,14 @@ LAYOUT_KEYS = (
         'Group:',
         'GroupKern:',
         'GroupVKern:',
+        'ScriptLang:',
     }
 )
 
 
 def version_matches(key: str, version: str) -> bool:
+    if key == 'ScriptLang:':
+        return version == '1.0'
     if key in PST_KEYS | {'Lookup:', 'AnchorClass2:'}:
         return version != '1.0'
     if key in {key.replace('2:', ':') for key in PST_KEYS} | LEGACY_KERN_KEYS | {'AnchorClass:'}:

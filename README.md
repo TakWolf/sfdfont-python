@@ -161,6 +161,14 @@ See `examples/edit_anchors.py` for a complete edit using DejaVuSerif.
 
 ### Edit legacy SFD 1.0 layout
 
+`SfdScriptLanguages` reads the counted `ScriptLang:` table as `lists` of
+`SfdScriptLanguage(script, languages)` entries. Tags contain exactly four ASCII
+characters, including padding spaces such as `'SRB '`. Both historical bare tags
+and quoted tags are accepted. An explicit table is checked against legacy
+layout indices, with `0xfffe` / `0xffff` retained as special values. Missing
+tables are not synthesized. Existing table bindings remain protected when
+uninterpreted dependencies are retained; this is not a migration to modern lookups.
+
 `SfdLegacyPst` covers `Position:`, `PairPos:`, substitution/ligature records and
 `LCarets:`. Its `SfdLegacyBinding` retains optional flags, script/language index,
 and either a four-byte tag or a Mac feature/setting pair. `positions` contains

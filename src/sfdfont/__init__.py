@@ -69,6 +69,7 @@ from sfdfont.payload import SfdPayload
 from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
 from sfdfont.revision import SfdSfntRevision
+from sfdfont.script_languages import SfdScriptLanguage, SfdScriptLanguages
 from sfdfont.size import SfdDesignSize, SfdStyleName
 from sfdfont.tables import SfdPrivateDict, SfdPrivateEntry, SfdShortTable, SfdShortTableWord
 from sfdfont.tex import SfdTexData, SfdTexMetrics
@@ -76,6 +77,8 @@ from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdName
 from sfdfont.woff import SfdWoffMetadata
 
 __all__ = [
+    'SfdScriptLanguage',
+    'SfdScriptLanguages',
     'SfdSfntRevision',
     'SfdFontRealMetric',
     'SfdStyleMapName',

@@ -123,6 +123,10 @@ def real(value: bytes | str) -> float:
 def record(reader: Reader, key: str) -> SfdRecord:
     from sfdfont._font_info import INFO_KEYS, info_record
 
+    if key == 'ScriptLang:':
+        from sfdfont._script_languages import script_languages_record
+
+        return script_languages_record(reader, key)
     if key in INFO_KEYS:
         return info_record(reader, key)
     if key in ('Group:', 'GroupKern:', 'GroupVKern:'):
@@ -216,24 +220,6 @@ def record(reader: Reader, key: str) -> SfdRecord:
         reader.fail(f'unsupported record {key}', SfdUnsupportedError)
     if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*:', key):
         reader.fail(f'unexpected token {key!r}')
-    if key == 'ScriptLang:':
-        start = reader.pos
-        count = integer(reader.word())
-        if count < 0 or count > reader.limits.max_bytes:
-            reader.fail('invalid ScriptLang count')
-        for _ in range(count):
-            script_count = integer(reader.word())
-            if script_count < 0 or script_count > reader.limits.max_bytes:
-                reader.fail('invalid script count')
-            for _ in range(script_count):
-                reader.word()
-                language_count = integer(reader.word())
-                if language_count < 0 or language_count > reader.limits.max_bytes:
-                    reader.fail('invalid language count')
-                for _ in range(language_count):
-                    if not reader.word():
-                        reader.fail('truncated script language list')
-        return SfdRecord(key, reader.data[start : reader.pos].strip())
     start = reader.pos
     value = reader.line()
     if key in _MULTILINE:

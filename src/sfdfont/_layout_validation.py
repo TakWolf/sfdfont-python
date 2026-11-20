@@ -52,6 +52,9 @@ def validate_layout(font) -> None:
             if record.keyword == 'AnchorClass:':
                 legacy_flags.extend(item.flags or 0 for item in decode_anchor_classes(record).classes)
         validate_marks(font, lookups, contexts, legacy_flags)
+        from sfdfont._script_languages import validate_script_languages
+
+        validate_script_languages(font, contexts, kerns, legacy_psts)
         lookup_names = {}
         subtables = {}
         for lookup in lookups:
@@ -244,6 +247,10 @@ def layout_identity(font):
             from sfdfont._feature_names import feature_names_identity
 
             result.append(feature_names_identity(record))
+        elif record.keyword == 'ScriptLang:':
+            from sfdfont._script_languages import decode_script_languages
+
+            result.append((record.keyword, decode_script_languages(record)))
         elif record.keyword in ('Group:', 'GroupKern:', 'GroupVKern:'):
             from sfdfont._groups import group_identity
 

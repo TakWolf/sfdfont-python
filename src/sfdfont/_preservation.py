@@ -37,6 +37,7 @@ def check_preservation(font) -> None:
         or any(item.keyword == 'woffMetadata:' for item in font.metadata.records)
         or feature_names_opaque(font.metadata.records)
         or group_identity(font.metadata.records)
+        or any(item.keyword == 'ScriptLang:' for item in font.metadata.records)
         or legacy_identity(font.metadata.records)
         or table_identity(font.metadata.records)
         or font.payloads
