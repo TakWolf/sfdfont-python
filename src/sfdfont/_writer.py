@@ -125,6 +125,8 @@ def dump_font(font) -> bytes:
         ('Version:', meta.version),
         ('Encoding:', meta.encoding),
     ]:
+        if key == 'Copyright:':
+            value = value.replace('\\', '\\\\').replace('\n', '\\n')
         line(key, plain(value))
     line('Ascent:', str(meta.ascent).encode())
     line('Descent:', str(meta.descent).encode())
@@ -162,7 +164,11 @@ def dump_font(font) -> bytes:
         line('Grid')
         result.append(splines(font.guidelines))
     line('BeginChars:', f'{font.encoding_size} {len(font.glyphs)}'.encode())
+    next_gid = 0
     for glyph in font.glyphs:
+        if glyph.glyph_id == 65535 and next_gid != 65535:
+            raise SfdValidationError('glyph ID 65535 is reserved for the next implicit ID in SFD')
+        next_gid = max(next_gid, glyph.glyph_id + 1)
         line('StartChar:', quote(glyph.name))
         line('Encoding:', f'{glyph.encoding} {glyph.unicode} {glyph.glyph_id}'.encode())
         line('Width:', str(glyph.width).encode())

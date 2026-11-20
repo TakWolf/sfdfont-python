@@ -1,6 +1,7 @@
 from sfdfont._parser import decode_text, integer
 from sfdfont._reader import Reader
 from sfdfont.bitmap import SfdBitmapGlyph, SfdBitmapProperty, SfdBitmapReference, SfdBitmapStrike
+from sfdfont.error import SfdLimitError
 from sfdfont.font import SfdFont
 
 
@@ -29,7 +30,7 @@ def bitmap(reader: Reader, font: SfdFont) -> SfdBitmapStrike:
             reader.fail('unterminated bitmap strike')
         if key == 'BDFChar:':
             if len(strike.glyphs) >= reader.limits.max_glyphs:
-                reader.fail('bitmap glyph limit exceeded')
+                reader.fail('max_glyphs exceeded for bitmap strike', SfdLimitError)
             fields = [integer(value) for value in reader.line().split()]
             if len(fields) == 6:
                 encoding = fields[0]

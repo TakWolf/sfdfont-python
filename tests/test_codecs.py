@@ -65,3 +65,9 @@ def test_logical_lines_and_position():
     with pytest.raises(SfdParseError) as caught:
         reader.fail('test')
     assert caught.value.line == 3
+
+
+def test_escaped_backslash_before_physical_newline():
+    reader = Reader(b' line one\\nline two\\\\\nNext: value\n')
+    assert reader.escaped_line() == b'line one\nline two\\'
+    assert reader.word() == 'Next:'

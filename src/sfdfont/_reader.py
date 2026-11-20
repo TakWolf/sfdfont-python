@@ -8,6 +8,8 @@ class Reader:
     def __init__(self, stream: bytes | bytearray | BinaryIO, limits: SfdReadLimits | None = None) -> None:
         self.limits = limits or SfdReadLimits()
         if isinstance(stream, (bytes, bytearray)):
+            if len(stream) > self.limits.max_bytes:
+                raise SfdLimitError('max_bytes exceeded')
             self.data = bytes(stream)
         else:
             parts = []
@@ -81,6 +83,22 @@ class Reader:
             self.pos = saved
             return ''
         return self.word()
+
+    def escaped_line(self) -> bytes:
+        result = bytearray()
+        while True:
+            char = self.char()
+            if char in (b'', b'\r', b'\n'):
+                break
+            if char == b'\\':
+                # An escaped backslash before a newline is literal, not a wrap.
+                char = self.data[self.pos : self.pos + 1]
+                if not char:
+                    self.fail('truncated line escape')
+                self.pos += 1
+                char = b'\n' if char == b'n' else char
+            result.extend(char)
+        return bytes(result).lstrip(b' \t')
 
     def ascii85(self, length: int) -> bytes:
         if length < 0:

@@ -1,4 +1,4 @@
-from sfdfont._parser import integer
+from sfdfont._parser import integer, real
 from sfdfont._reader import Reader
 from sfdfont.payload import SfdPayload
 
@@ -21,12 +21,16 @@ def payload(reader: Reader, key: str) -> SfdPayload:
         if len(fields) != 6 or fields[0] != b'image/png':
             reader.fail('unsupported Image2 header')
         length = integer(fields[1])
+        for value in fields[2:]:
+            real(value)
         terminator = 'EndImage2'
     elif key == 'Image:':
         if len(fields) != 11:
             reader.fail('invalid Image header')
         width, height, kind, stride, palette = (integer(value) for value in fields[:5])
         rle = integer(fields[10])
+        for value in fields[6:10]:
+            real(value)
         if min(width, height, stride, palette, rle) < 0 or kind not in (0, 1, 2, 3):
             reader.fail('invalid Image dimensions or type')
         length = palette * 3 + (rle if rle else stride * height)

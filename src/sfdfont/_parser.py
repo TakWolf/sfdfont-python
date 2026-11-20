@@ -83,12 +83,16 @@ def string(value: bytes) -> str:
 
 
 def integer(value: bytes | str) -> int:
+    if len(value) > 12:
+        raise SfdParseError('integer exceeds supported field size')
     if not re.fullmatch(rb'[+-]?\d+', value.encode() if isinstance(value, str) else value):
         raise SfdParseError(f'invalid integer: {value!r}')
     return int(value)
 
 
 def real(value: bytes | str) -> float:
+    if len(value) > 128:
+        raise SfdParseError('coordinate exceeds supported field size')
     try:
         number = float(value)
     except ValueError as error:
@@ -99,6 +103,8 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    if key in ('StartChar:', 'BeginChars:', 'BitmapFont:', 'BDFChar:', 'BDFRefChar:'):
+        reader.fail(f'misplaced structural record {key}')
     if key in ('PickledData:', 'PickledDataWithLists:'):
         start = reader.pos
         while reader.pos < len(reader.data) and reader.data[reader.pos] in b' \t':
@@ -231,7 +237,7 @@ def glyph(reader: Reader, font: SfdFont) -> SfdGlyph:
     name = string(reader.line())
     if not name:
         reader.fail('empty glyph name')
-    result = SfdGlyph(name=name, glyph_id=len(font.glyphs))
+    result = SfdGlyph(name=name, glyph_id=reader.next_gid)
     current: SfdLayer | None = None
     seen = set()
     while True:
@@ -253,6 +259,7 @@ def glyph(reader: Reader, font: SfdFont) -> SfdGlyph:
                 result.encoding, result.unicode = values[:2]
                 if len(values) == 3 and values[2] != 65535:
                     result.glyph_id = values[2]
+                reader.next_gid = max(reader.next_gid, result.glyph_id + 1)
             elif len(values) != 1:
                 reader.fail(f'{key} requires one integer')
             elif key == 'Width:':
@@ -308,6 +315,7 @@ def glyph(reader: Reader, font: SfdFont) -> SfdGlyph:
 def parse_font(stream: bytes | bytearray | BinaryIO, limits: SfdReadLimits | None) -> SfdFont:
     reader = Reader(stream, limits)
     reader.point_count = 0
+    reader.next_gid = 0
     try:
         font = _parse_font(reader)
         try:
@@ -356,7 +364,7 @@ def _parse_font(reader: Reader) -> SfdFont:
             font.encoding_size, count = (integer(value) for value in fields)
             if min(font.encoding_size, count) < 0:
                 reader.fail('negative BeginChars count')
-            if count > reader.limits.max_glyphs:
+            if version != '1.0' and count > reader.limits.max_glyphs:
                 reader.fail('max_glyphs exceeded', SfdLimitError)
             while True:
                 key = reader.word()
@@ -389,6 +397,9 @@ def _parse_font(reader: Reader) -> SfdFont:
             if reader.word() != 'SplineSet':
                 reader.pos = saved
             font.guidelines.extend(spline_set(reader))
+        elif key in ('Copyright:', 'Comments:'):
+            value = decode_text(reader.escaped_line())
+            setattr(font.metadata, 'copyright' if key == 'Copyright:' else 'comments', value)
         elif key in _TEXT_FIELDS:
             setattr(font.metadata, _TEXT_FIELDS[key], decode_text(reader.line()))
         elif key in ('UComments:', 'FontLog:'):

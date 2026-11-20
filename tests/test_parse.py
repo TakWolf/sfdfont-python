@@ -128,3 +128,20 @@ def test_resource_limits():
 def test_unsupported_blocks_are_not_silently_ignored():
     with pytest.raises(SfdUnsupportedError):
         SfdFont.parse(MINIMAL.replace(b'BeginChars:', b'BeginMMFonts:'))
+
+
+@pytest.mark.parametrize('replacement', [b'-100', b'5'])
+def test_bad_or_duplicate_glyph_id(replacement):
+    with pytest.raises(SfdParseError):
+        SfdFont.parse(MINIMAL.replace(b'Encoding: -1 -1 9', b'Encoding: -1 -1 ' + replacement))
+
+
+def test_old_implicit_ids_follow_explicit_sparse_ids_and_counts_are_hints():
+    font = SfdFont.parse(
+        b'SplineFontDB: 1.0\nBeginChars: 256 256\n'
+        b'StartChar: a\nEncoding: 65 65 7\nWidth: 500\nEndChar\n'
+        b'StartChar: b\nEncoding: 66 66\nWidth: 500\nEndChar\n'
+        b'EndChars\nEndSplineFont\n',
+        limits=SfdReadLimits(max_glyphs=2),
+    )
+    assert [glyph.glyph_id for glyph in font.glyphs] == [7, 8]
