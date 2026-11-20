@@ -68,9 +68,12 @@ from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
 from sfdfont.size import SfdDesignSize, SfdStyleName
 from sfdfont.tables import SfdPrivateDict, SfdPrivateEntry, SfdShortTable, SfdShortTableWord
+from sfdfont.tex import SfdTexData, SfdTexMetrics
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdTexData',
+    'SfdTexMetrics',
     'SfdFeatureName',
     'SfdFeatureNames',
     'SfdPanose',

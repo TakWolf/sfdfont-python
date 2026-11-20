@@ -246,6 +246,24 @@ These models also use explicit `from_record()` / `to_record()` conversions.
 
 See `examples/create_font_info.py` for a complete example.
 
+### Edit TeX data
+
+`SfdTexData(kind, design_size, parameters)` retains the font-level `TeXData:`
+record: kind 0/1/2/3 is unset/text/math-symbol/math-extension, followed by a raw
+design size and exactly 22 signed 32-bit parameters. Design size uses 20 fractional
+bits in points; other parameters retain their stored fixed-point values.
+Parameters default to 22 zeros.
+
+`SfdTexMetrics(height, depth, legacy=None)` stores a glyph's two signed 16-bit
+metrics; `32767` is the undefined sentinel. The optional two-value `legacy`
+tuple retains the obsolete four-value form. Historical zero-value fixups are
+not applied, and the library does not synchronize TeXData with DesignSize.
+FontForge may recompute redundant sizes or apply its old metric fixups on import.
+
+Both models use explicit `from_record()` / `to_record()` replacement in font
+metadata or glyph/layer records, respectively. The library does not produce TFM
+files or evaluate TeX layout. See `examples/create_tex.py`.
+
 ### Edit baselines
 
 `SfdBaselines` reads and writes `BaseHoriz:` / `BaseVert:` records. Its `tags`
@@ -432,6 +450,8 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
 - PANOSE byte values, OS/2 Unicode/code-page bitmasks and fixed four-byte vendor IDs.
 - OpenType feature labels and extended character-variant names, with language and
   parameter count checks and explicit preservation of reserved trailer text.
+- Font-level TeX parameters and modern/legacy glyph TeX metrics, with fixed counts,
+  native integer bounds and preservation of undefined sentinels.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.

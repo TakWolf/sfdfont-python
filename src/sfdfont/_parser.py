@@ -125,6 +125,10 @@ def record(reader: Reader, key: str) -> SfdRecord:
 
     if key in INFO_KEYS:
         return info_record(reader, key)
+    if key == 'TeX:':
+        from sfdfont._tex import tex_record
+
+        return tex_record(reader, key)
     if key in ('HStem:', 'VStem:', 'DStem:', 'DStem2:', 'CounterMasks:', 'MinimumDistance:'):
         from sfdfont._hints import hint_record
 

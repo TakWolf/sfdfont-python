@@ -8,6 +8,7 @@ from sfdfont._layout_validation import layout_identity
 from sfdfont._legacy_layout import LEGACY_KEYS, legacy_identity
 from sfdfont._math import GLYPH_MATH_KEYS, math_constant
 from sfdfont._tables import TABLE_KEYS, table_identity
+from sfdfont._tex import TEX_GLYPH_KEYS
 from sfdfont.error import SfdValidationError
 
 
@@ -21,6 +22,7 @@ def protected_records(items):
         | TABLE_KEYS
         | EXTENDED_KEYS
         | INFO_KEYS
+        | TEX_GLYPH_KEYS
     )
     return [r for r in items if r.keyword not in editable and not math_constant(r.keyword)]
 
