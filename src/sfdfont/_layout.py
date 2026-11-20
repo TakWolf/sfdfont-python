@@ -38,18 +38,19 @@ AAT_KEYS = {
 }
 SUBSTITUTION_KEYS = {'Substitution2:', 'MultipleSubs2:', 'AlternateSubs2:', 'Ligature2:'}
 PST_KEYS = SUBSTITUTION_KEYS | {'Position2:', 'PairPos2:', 'LCarets2:'}
+LEGACY_KERN_KEYS = {'Kerns:', 'KernsSLI:', 'KernsSLIF:', 'VKernsSLIF:', 'KernsSLIFO:', 'VKernsSLIFO:'}
 LAYOUT_KEYS = (
     CONTEXT_KEYS
     | KERN_CLASS_KEYS
     | AAT_KEYS
-    | {'Lookup:', 'TableOrder:', 'AnchorClass2:', 'MarkAttachClasses:', 'MarkAttachSets:'}
+    | {'Lookup:', 'TableOrder:', 'AnchorClass2:', 'AnchorClass:', 'MarkAttachClasses:', 'MarkAttachSets:'}
 )
 
 
 def version_matches(key: str, version: str) -> bool:
     if key in PST_KEYS | {'Lookup:', 'AnchorClass2:'}:
         return version != '1.0'
-    if key in {key.replace('2:', ':') for key in PST_KEYS} | {'AnchorClass:'}:
+    if key in {key.replace('2:', ':') for key in PST_KEYS} | LEGACY_KERN_KEYS | {'AnchorClass:'}:
         return version == '1.0'
     if key == 'TableOrder:':
         return version == '1.0'

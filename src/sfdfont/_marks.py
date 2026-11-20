@@ -75,7 +75,7 @@ def encode_sets(value: SfdMarkSets) -> SfdRecord:
     return encode_groups(value.sets, 'MarkAttachSets:')
 
 
-def validate_marks(font, lookups, contexts) -> None:
+def validate_marks(font, lookups, contexts, legacy_flags=()) -> None:
     classes = sets = None
     try:
         for record in font.metadata.records:
@@ -100,12 +100,17 @@ def validate_marks(font, lookups, contexts) -> None:
                     previous = assignments.setdefault(name, index)
                     if previous != index:
                         raise SfdValidationError(f'glyph {name!r} occurs in multiple mark attachment classes')
-    for value in [*lookups, *(context for context in contexts if context.subtable is None)]:
-        class_index = (value.flags >> 8) & 0xFF
+    flags_to_check = [
+        *(lookup.flags for lookup in lookups),
+        *(c.flags for c in contexts if c.subtable is None),
+        *legacy_flags,
+    ]
+    for flags in flags_to_check:
+        class_index = (flags >> 8) & 0xFF
         if class_index and class_index > len(classes or []):
             raise SfdValidationError(f'undefined mark attachment class index {class_index}')
-        if value.flags & 0x10:
-            set_index = (value.flags >> 16) & 0xFFFF
+        if flags & 0x10:
+            set_index = (flags >> 16) & 0xFFFF
             if set_index >= len(sets or []):
                 raise SfdValidationError(f'undefined mark filtering set index {set_index}')
 

@@ -126,6 +126,10 @@ def record(reader: Reader, key: str) -> SfdRecord:
 
         return mark_record(reader, key)
     from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS, ROOT_LAYOUT_KEYS, layout_record
+    from sfdfont._legacy_layout import LEGACY_KEYS, legacy_record
+
+    if key in LEGACY_KEYS:
+        return legacy_record(reader, key)
 
     if key in GLYPH_LAYOUT_KEYS | ROOT_LAYOUT_KEYS:
         return layout_record(reader, key)

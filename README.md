@@ -155,7 +155,8 @@ advances and device adjustments. `SfdSubstitution` covers single, multiple,
 alternate and ligature substitutions. `SfdKerningPairs` / `SfdKerningPair` cover
 horizontal and vertical pair lists; `SfdLigatureCarets` stores insertion positions.
 These models target the modern records with a `2` suffix, in SFD 2.0 and later.
-Legacy records are retained without implicit conversion.
+Legacy SFD 1.0 records have separate models described below; no implicit format
+conversion is performed.
 
 ```python
 from sfdfont import SfdPairPosition, SfdPositionValue, SfdSubstitution
@@ -186,6 +187,38 @@ to apply the change. Anchors retain their role, ligature component index, device
 adjustments and optional TrueType point index. `SfdAnchorClasses` /
 `SfdAnchorClass` describe modern class definitions in `font.metadata.records`.
 See `examples/edit_anchors.py` for a complete edit using DejaVuSerif.
+
+### Edit legacy SFD 1.0 layout
+
+`SfdLegacyPst` covers `Position:`, `PairPos:`, substitution/ligature records and
+`LCarets:`. Its `SfdLegacyBinding` retains optional flags, script/language index,
+and either a four-byte tag or a Mac feature/setting pair. `positions` contains
+one or two `SfdPositionValue` objects; `glyphs` and `carets` retain the appropriate
+record's tokens or insertion positions.
+
+```python
+from sfdfont import SfdLegacyPst
+
+pair = SfdLegacyPst.from_record(pair_record)
+pair.positions[0].y_offset += 10
+updated_record = pair.to_record()
+```
+
+`SfdLegacyKerningPairs` / `SfdLegacyKerningPair` support `Kerns:`, `KernsSLI:`,
+`KernsSLIF:`, `VKernsSLIF:`, `KernsSLIFO:` and `VKernsSLIFO:`. The `SLIFO` forms
+use glyph IDs; the other forms use encoding slots. `SfdLegacyAnchorClasses` /
+`SfdLegacyAnchorClass` retain old feature tags, flags, script/language indices,
+merge fields and optional class types.
+
+Omitted fields remain omitted. A later optional numeric field requires all its
+preceding fields. Caret records need a tag or both numeric prefix fields to make
+the count unambiguous. Old `PairPos:` records preserve an explicit `|` separator
+when present. Existing bindings and targets remain protected after loading while
+legacy or other opaque dependencies are retained; positioning, kerning, caret and
+device-adjustment values can be changed. Historical unresolved glyph targets are
+preserved without repair or promotion to modern lookups.
+
+See `examples/edit_legacy_layout.py` for a complete edit of the original VKern font.
 
 ### Edit MATH data
 
@@ -243,7 +276,8 @@ using an upstream test font.
   positioning, horizontal/vertical kerning classes (legacy, version 2 and version 3),
   and AAT state machines. Mark attachment classes/filtering sets include counted
   multiline parsing, membership editing and lookup flag index validation. Glyph positioning, substitutions, pair kerning, ligature
-  carets and anchors also have editable models. Lookup ownership, glyph references and dependency cycles
+  carets and anchors also have editable models. Separate legacy models retain
+  SFD 1.0 bindings and permit numeric layout edits. Lookup ownership, glyph references and dependency cycles
   are checked. Shaping is outside the scope of the library.
 - BASE baselines and language extents, JSTF justification and Mac feature names
   are structurally checked and retained as records. Editable MATH models cover

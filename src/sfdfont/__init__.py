@@ -28,6 +28,14 @@ from sfdfont.layout import (
     SfdLookupSubtable,
     SfdSequenceLookup,
 )
+from sfdfont.legacy_layout import (
+    SfdLegacyAnchorClass,
+    SfdLegacyAnchorClasses,
+    SfdLegacyBinding,
+    SfdLegacyKerningPair,
+    SfdLegacyKerningPairs,
+    SfdLegacyPst,
+)
 from sfdfont.limits import SfdReadLimits
 from sfdfont.marks import SfdMarkClasses, SfdMarkGroup, SfdMarkSets
 from sfdfont.math import SfdGlyphAssembly, SfdGlyphPart, SfdGlyphVariants, SfdMathKern, SfdMathKernEntry, SfdMathValue
@@ -40,6 +48,12 @@ from sfdfont.reference import SfdReference
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdLegacyBinding',
+    'SfdLegacyPst',
+    'SfdLegacyKerningPair',
+    'SfdLegacyKerningPairs',
+    'SfdLegacyAnchorClass',
+    'SfdLegacyAnchorClasses',
     'SfdMarkGroup',
     'SfdMarkClasses',
     'SfdMarkSets',

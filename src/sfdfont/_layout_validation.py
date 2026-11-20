@@ -3,6 +3,7 @@ import re
 from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
 from sfdfont._glyph_layout import decode as decode_glyph_layout
 from sfdfont._layout import AAT_KEYS, CONTEXT_KEYS, KERN_CLASS_KEYS
+from sfdfont._legacy_layout import LEGACY_KERN_KEYS, LEGACY_PST_KEYS, decode_anchor_classes, decode_pairs, decode_pst
 from sfdfont._reader import Reader
 from sfdfont.aat import SfdStateMachine
 from sfdfont.error import SfdParseError, SfdValidationError
@@ -33,7 +34,19 @@ def validate_layout(font) -> None:
         machines = [SfdStateMachine.from_record(r) for r in font.metadata.records if r.keyword in AAT_KEYS]
         from sfdfont._marks import validate_marks
 
-        validate_marks(font, lookups, contexts)
+        legacy_psts = []
+        legacy_flags = []
+        for record in glyph_records(font):
+            if record.keyword in LEGACY_PST_KEYS:
+                value = decode_pst(record)
+                legacy_psts.append(value)
+                legacy_flags.append(value.binding.flags or 0)
+            elif record.keyword in LEGACY_KERN_KEYS:
+                legacy_flags.extend(pair.flags or 0 for pair in decode_pairs(record).pairs)
+        for record in font.metadata.records:
+            if record.keyword == 'AnchorClass:':
+                legacy_flags.extend(item.flags or 0 for item in decode_anchor_classes(record).classes)
+        validate_marks(font, lookups, contexts, legacy_flags)
         lookup_names = {}
         subtables = {}
         for lookup in lookups:
@@ -57,15 +70,15 @@ def validate_layout(font) -> None:
                 need(name in names, f'unknown glyph {name!r} in layout')
 
         definitions = {c.tag for c in contexts if c.tag is not None}
-        old_pst = {'Substitution:', 'MultipleSubs:', 'AlternateSubs:', 'Ligature:', 'Position:', 'PairPos:'}
         for record in font.metadata.records:
             if record.keyword == 'GenTags:':
                 definitions.update(tag.decode('ascii') for tag in re.findall(rb"'(.{4})'", record.value))
-        for record in glyph_records(font):
-            if record.keyword in old_pst:
-                match = re.search(rb"'(.{4})'", record.value)
-                if match:
-                    definitions.add(match[1].decode('ascii'))
+        for value in legacy_psts:
+            if value.keyword != 'LCarets:':
+                if isinstance(value.binding.tag, str):
+                    definitions.add(value.binding.tag)
+                elif value.binding.tag is None:
+                    definitions.add('liga')
         graph = {name: [] for name in lookup_names}
         used = set()
 
@@ -177,9 +190,9 @@ def validate_layout(font) -> None:
                     need(anchor.name not in anchors, 'duplicate anchor class name')
                     anchors.add(anchor.name)
             elif record.keyword == 'AnchorClass:':
-                from sfdfont._strings import decode_utf7
-
-                anchors.update(decode_utf7(value) for value in re.findall(rb'"([^"]*)"', record.value))
+                for anchor in decode_anchor_classes(record).classes:
+                    need(anchor.name not in anchors, 'duplicate anchor class name')
+                    anchors.add(anchor.name)
         for record in glyph_records(font):
             value = decode_glyph_layout(record, GLYPH_LAYOUT_KEYS) if record.keyword in GLYPH_LAYOUT_KEYS else None
             if record.keyword in modern_pst:

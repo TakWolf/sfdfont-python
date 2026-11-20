@@ -82,6 +82,7 @@ def contours(items) -> None:
 def validate(font, *, layout: bool = True) -> None:
     from sfdfont._extended import EXTENDED_KEYS
     from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
+    from sfdfont._legacy_layout import LEGACY_GLYPH_KEYS
 
     def font_record(record) -> bool:
         return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS | {
@@ -100,7 +101,7 @@ def validate(font, *, layout: bool = True) -> None:
         validate_mm(font)
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
     for record in font.metadata.records:
-        check(record.keyword not in GLYPH_LAYOUT_KEYS, 'glyph layout record in font metadata')
+        check(record.keyword not in GLYPH_LAYOUT_KEYS | LEGACY_GLYPH_KEYS, 'glyph layout record in font metadata')
         check(record.keyword != 'UndoRedoHistory', 'undo history belongs in a glyph layer')
         check(
             version_matches(record.keyword, font.version), f'layout record {record.keyword} conflicts with SFD version'
