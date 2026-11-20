@@ -598,7 +598,8 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
   interpreting their semantics. Pickled data and MM PostScript subroutines are
   preserved without execution or unpickling.
 
-Versions 0/4, sfdir directories and asfd recovery files are not supported.
+Versions 0/4, sfdir directories, asfd recovery files and the optional Hanyang
+`BeginCompositionRules` extension are not supported.
 Unsupported structures raise `SfdUnsupportedError`; malformed structures raise
 `SfdParseError`. Accepting a version header does not imply every extension is supported.
 

@@ -40,6 +40,7 @@ _MULTILINE = {
     'TtTable:': 'EndTTInstrs',
 }
 _UNSUPPORTED = {
+    'BeginCompositionRules',
     'BeginSubFonts:',
     'Registry:',
     'Ordering:',

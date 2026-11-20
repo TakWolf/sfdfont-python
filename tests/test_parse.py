@@ -130,6 +130,11 @@ def test_unsupported_blocks_are_not_silently_ignored():
         SfdFont.parse(MINIMAL.replace(b'BeginChars:', b'BeginMMFonts:'))
 
 
+def test_hanyang_composition_rules_report_unsupported_structure():
+    with pytest.raises(SfdUnsupportedError, match='BeginCompositionRules'):
+        SfdFont.parse(MINIMAL.replace(b'BeginChars:', b'BeginCompositionRules\nBeginChars:', 1))
+
+
 @pytest.mark.parametrize('replacement', [b'-100', b'5'])
 def test_bad_or_duplicate_glyph_id(replacement):
     with pytest.raises(SfdParseError):
