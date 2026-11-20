@@ -63,10 +63,13 @@ from sfdfont.paint import SfdGradient, SfdGradientStop, SfdPaint, SfdPattern
 from sfdfont.payload import SfdPayload
 from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
+from sfdfont.size import SfdDesignSize, SfdStyleName
 from sfdfont.tables import SfdPrivateDict, SfdPrivateEntry, SfdShortTable, SfdShortTableWord
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdStyleName',
+    'SfdDesignSize',
     'SfdGaspRange',
     'SfdGaspTable',
     'SfdMacSetting',

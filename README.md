@@ -237,6 +237,16 @@ gasp_record = gasp.to_record()
 Use `from_record()` / `to_record()` and replace the entry in
 `font.metadata.records` when editing. The library checks counts and integer bounds;
 it does not render glyphs or apply the grid-fitting flags.
+
+`SfdDesignSize(size, range=None, style_id=None, names=None)` retains the optical
+design size in tenths of a point. A range is a `(bottom, top)` pair with an exclusive
+lower and inclusive upper bound; it must be supplied together with `style_id`.
+Optional `SfdStyleName(language, name)` entries use Windows language IDs and SFD
+UTF-7 text. Omitted fields remain omitted; names require a range/style group.
+Both the historical space-separated range and the usual `bottom-top` form can be
+read; writing uses the latter. The library does not infer style names or compile
+the OpenType size feature.
+
 See `examples/create_font_info.py` for a complete example.
 
 ### Edit baselines
@@ -396,6 +406,7 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
 - SFD versions 1.0, 2.0, 3.0, 3.1 and 3.2, with standard-library-only runtime code.
 - Font names, language names, comments, SFD UTF-7, UTF-8 and legacy text fields.
 - Editable GaspTable ranges and versions, with count, ppem order and integer checks.
+- Optical DesignSize, optional ranges/style IDs and multilingual style names.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.

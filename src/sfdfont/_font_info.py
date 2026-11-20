@@ -1,13 +1,16 @@
 from sfdfont._gasp import decode_gasp
+from sfdfont._size import decode_design_size
 from sfdfont.error import SfdParseError, SfdValidationError
 from sfdfont.record import SfdRecord
 
-INFO_KEYS = {'GaspTable:'}
+INFO_KEYS = {'GaspTable:', 'DesignSize:'}
 
 
 def decode_info(item):
     if item.keyword == 'GaspTable:':
         return decode_gasp(item)
+    if item.keyword == 'DesignSize:':
+        return decode_design_size(item)
     raise SfdParseError('unexpected font information record kind')
 
 
