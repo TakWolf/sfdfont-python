@@ -93,6 +93,20 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    if key in ('PickledData:', 'PickledDataWithLists:'):
+        start = reader.pos
+        while reader.pos < len(reader.data) and reader.data[reader.pos] in b' \t':
+            reader.pos += 1
+        if reader.char() != b'"':
+            reader.fail('expected quoted pickle payload')
+        escaped = False
+        while reader.pos < len(reader.data):
+            char = reader.data[reader.pos]
+            reader.pos += 1
+            if char == 34 and not escaped:
+                return SfdRecord(key, reader.data[start : reader.pos].strip())
+            escaped = char == 92 and not escaped
+        reader.fail('unterminated pickle payload')
     if key in _UNSUPPORTED or key.startswith(('BeginUndo', 'BeginRedo')):
         reader.fail(f'unsupported record {key}', SfdUnsupportedError)
     if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*:', key):
@@ -265,6 +279,17 @@ def glyph(reader: Reader, font: SfdFont) -> SfdGlyph:
             if key != 'SplineSet':
                 reader.pos -= len(key)
             current.contours.extend(spline_set(reader))
+        elif key in ('Image:', 'Image2:', 'TtfInstrs:'):
+            from sfdfont._binary import payload
+
+            item = payload(reader, key)
+            if key.startswith('Image'):
+                if current is None:
+                    current = SfdLayer()
+                    result.layers.append(current)
+                current.images.append(item)
+            else:
+                result.payloads.append(item)
         elif key in ('Refer:', 'Ref:'):
             if current is None:
                 current = SfdLayer()
@@ -332,8 +357,26 @@ def _parse_font(reader: Reader) -> SfdFont:
                 font.glyphs.append(glyph(reader, font))
             if version != '1.0' and len(font.glyphs) != count:
                 reader.fail('BeginChars count differs from actual glyph count')
+        elif key == 'BitmapFont:' and seen_chars:
+            from sfdfont._bitmap import bitmap
+
+            font.bitmap_strikes.append(bitmap(reader, font))
         elif seen_chars:
             reader.fail(f'unsupported post-glyph record {key}', SfdUnsupportedError)
+        elif key == 'TtfTable:':
+            from sfdfont._binary import payload
+
+            font.payloads.append(payload(reader, key))
+        elif key == 'GridOrder2:':
+            value = integer(reader.line())
+            if value not in (0, 1):
+                reader.fail('invalid GridOrder2')
+            font.grid_quadratic = bool(value)
+        elif key == 'Grid':
+            saved = reader.pos
+            if reader.word() != 'SplineSet':
+                reader.pos = saved
+            font.guidelines.extend(spline_set(reader))
         elif key in _TEXT_FIELDS:
             setattr(font.metadata, _TEXT_FIELDS[key], decode_text(reader.line()))
         elif key in ('UComments:', 'FontLog:'):

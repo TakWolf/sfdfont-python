@@ -4,10 +4,13 @@ from copy import copy, deepcopy
 from os import PathLike
 from typing import Any, BinaryIO
 
+from sfdfont.bitmap import SfdBitmapStrike
 from sfdfont.glyph import SfdGlyph
 from sfdfont.layer import SfdLayerInfo
 from sfdfont.limits import SfdReadLimits
 from sfdfont.metadata import SfdMetadata
+from sfdfont.outline import SfdContour
+from sfdfont.payload import SfdPayload
 
 
 class SfdFont:
@@ -16,6 +19,10 @@ class SfdFont:
     layer_infos: list[SfdLayerInfo]
     glyphs: list[SfdGlyph]
     encoding_size: int
+    bitmap_strikes: list[SfdBitmapStrike]
+    payloads: list[SfdPayload]
+    guidelines: list[SfdContour]
+    grid_quadratic: bool
 
     def __init__(
         self,
@@ -24,6 +31,10 @@ class SfdFont:
         layer_infos: list[SfdLayerInfo] | None = None,
         glyphs: list[SfdGlyph] | None = None,
         encoding_size: int = 0x110000,
+        bitmap_strikes: list[SfdBitmapStrike] | None = None,
+        payloads: list[SfdPayload] | None = None,
+        guidelines: list[SfdContour] | None = None,
+        grid_quadratic: bool = False,
     ) -> None:
         self.version = version
         self.metadata = metadata if metadata is not None else SfdMetadata()
@@ -32,6 +43,10 @@ class SfdFont:
         )
         self.glyphs = glyphs if glyphs is not None else []
         self.encoding_size = encoding_size
+        self.bitmap_strikes = bitmap_strikes if bitmap_strikes is not None else []
+        self.payloads = payloads if payloads is not None else []
+        self.guidelines = guidelines if guidelines is not None else []
+        self.grid_quadratic = grid_quadratic
 
     def __copy__(self) -> SfdFont:
         return SfdFont(
@@ -40,6 +55,10 @@ class SfdFont:
             self.layer_infos,
             self.glyphs,
             self.encoding_size,
+            self.bitmap_strikes,
+            self.payloads,
+            self.guidelines,
+            self.grid_quadratic,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdFont:
@@ -50,6 +69,10 @@ class SfdFont:
         copied.layer_infos = deepcopy(self.layer_infos, memo)
         copied.glyphs = deepcopy(self.glyphs, memo)
         copied.encoding_size = deepcopy(self.encoding_size, memo)
+        copied.bitmap_strikes = deepcopy(self.bitmap_strikes, memo)
+        copied.payloads = deepcopy(self.payloads, memo)
+        copied.guidelines = deepcopy(self.guidelines, memo)
+        copied.grid_quadratic = deepcopy(self.grid_quadratic, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -61,6 +84,10 @@ class SfdFont:
             and self.layer_infos == other.layer_infos
             and self.glyphs == other.glyphs
             and self.encoding_size == other.encoding_size
+            and self.bitmap_strikes == other.bitmap_strikes
+            and self.payloads == other.payloads
+            and self.guidelines == other.guidelines
+            and self.grid_quadratic == other.grid_quadratic
         )
 
     def __repr__(self) -> str:
@@ -70,7 +97,11 @@ class SfdFont:
             f'metadata={self.metadata!r}, '
             f'layer_infos={self.layer_infos!r}, '
             f'glyphs={self.glyphs!r}, '
-            f'encoding_size={self.encoding_size!r}'
+            f'encoding_size={self.encoding_size!r}, '
+            f'bitmap_strikes={self.bitmap_strikes!r}, '
+            f'payloads={self.payloads!r}, '
+            f'guidelines={self.guidelines!r}, '
+            f'grid_quadratic={self.grid_quadratic!r}'
             f')'
         )
 

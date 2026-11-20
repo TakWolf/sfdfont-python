@@ -73,6 +73,15 @@ class Reader:
             result.extend(char)
         return bytes(result).rstrip(b'\r').strip(b' \t')
 
+    def inline_word(self) -> str:
+        saved = self.pos
+        while self.pos < len(self.data) and self.data[self.pos] in b' \t':
+            self.pos += 1
+        if self.pos == len(self.data) or self.data[self.pos] in b'\r\n':
+            self.pos = saved
+            return ''
+        return self.word()
+
     def ascii85(self, length: int) -> bytes:
         if length < 0:
             self.fail('negative payload length')

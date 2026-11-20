@@ -4,6 +4,7 @@ from copy import copy, deepcopy
 from typing import Any
 
 from sfdfont.layer import SfdLayer
+from sfdfont.payload import SfdPayload
 from sfdfont.record import SfdRecord
 
 
@@ -72,6 +73,7 @@ class SfdGlyph:
     alternate_unicodes: list[SfdAlternateUnicode]
     layers: list[SfdLayer]
     records: list[SfdRecord]
+    payloads: list[SfdPayload]
 
     def __init__(
         self,
@@ -84,6 +86,7 @@ class SfdGlyph:
         alternate_unicodes: list[SfdAlternateUnicode] | None = None,
         layers: list[SfdLayer] | None = None,
         records: list[SfdRecord] | None = None,
+        payloads: list[SfdPayload] | None = None,
     ) -> None:
         self.name = name
         self.glyph_id = glyph_id
@@ -94,6 +97,7 @@ class SfdGlyph:
         self.alternate_unicodes = alternate_unicodes if alternate_unicodes is not None else []
         self.layers = layers if layers is not None else []
         self.records = records if records is not None else []
+        self.payloads = payloads if payloads is not None else []
 
     def __copy__(self) -> SfdGlyph:
         return SfdGlyph(
@@ -106,6 +110,7 @@ class SfdGlyph:
             self.alternate_unicodes,
             self.layers,
             self.records,
+            self.payloads,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdGlyph:
@@ -120,6 +125,7 @@ class SfdGlyph:
         copied.alternate_unicodes = deepcopy(self.alternate_unicodes, memo)
         copied.layers = deepcopy(self.layers, memo)
         copied.records = deepcopy(self.records, memo)
+        copied.payloads = deepcopy(self.payloads, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -135,6 +141,7 @@ class SfdGlyph:
             and self.alternate_unicodes == other.alternate_unicodes
             and self.layers == other.layers
             and self.records == other.records
+            and self.payloads == other.payloads
         )
 
     def __repr__(self) -> str:
@@ -148,7 +155,8 @@ class SfdGlyph:
             f'vertical_width={self.vertical_width!r}, '
             f'alternate_unicodes={self.alternate_unicodes!r}, '
             f'layers={self.layers!r}, '
-            f'records={self.records!r}'
+            f'records={self.records!r}, '
+            f'payloads={self.payloads!r}'
             f')'
         )
 
