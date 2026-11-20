@@ -103,42 +103,55 @@ class LayoutReader:
         self.reader.pos = end + 1
         return decode_utf7(self.reader.data[start:end])
 
-    def tag(self) -> None:
+    def tag(self) -> str:
         self.expect(b"'")
+        result = bytearray()
         for _ in range(4):
-            if self.reader.char() in (b'', b'\r', b'\n'):
+            char = self.reader.char()
+            if char in (b'', b'\r', b'\n'):
                 self.reader.fail('incomplete layout tag')
+            result.extend(char)
         if self.reader.char() != b"'":
             self.reader.fail('layout tag must contain exactly four bytes')
+        try:
+            return result.decode('ascii')
+        except UnicodeDecodeError:
+            self.reader.fail('non-ASCII layout tag')
+        raise AssertionError
 
-    def device_table(self) -> None:
+    def device_table(self) -> dict[int, int]:
         if self.peek() != b'{':
-            return
+            return {}
         self.expect(b'{')
         if self.peek() == b'}':
             self.expect(b'}')
-            return
+            return {}
         first = self.integer()
         self.expect(b'-')
         last = self.integer(minimum=first)
-        for _ in range(last - first + 1):
+        result = {}
+        for size in range(first, last + 1):
             if self.peek() == b',':
                 self.expect(b',')
-            self.integer(minimum=-128, maximum=127)
+            result[size] = self.integer(minimum=-128, maximum=127)
         self.expect(b'}')
+        return result
 
-    def kern_class_entry(self) -> None:
-        self.integer(maximum=0x7FFFFFFF)
+    def kern_class_entry(self) -> tuple[int, str | None, str | None]:
+        flags = self.integer(maximum=0x7FFFFFFF)
+        strings = []
         for _ in range(2):
             while self.reader.data[self.reader.pos : self.reader.pos + 1] in (b' ', b'\t'):
                 self.reader.pos += 1
             if self.reader.data[self.reader.pos : self.reader.pos + 1] != b'"':
                 break
-            self.quoted()
+            strings.append(self.quoted())
         while self.reader.data[self.reader.pos : self.reader.pos + 1] in (b' ', b'\t'):
             self.reader.pos += 1
         if self.reader.data[self.reader.pos : self.reader.pos + 1] not in (b'\r', b'\n', b''):
             self.reader.fail('unexpected data in kerning class entry')
+        strings += [None] * (2 - len(strings))
+        return flags, strings[0], strings[1]
 
 
 def context_record(reader: Reader, key: str) -> SfdRecord:

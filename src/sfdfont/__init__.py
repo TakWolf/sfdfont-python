@@ -5,6 +5,15 @@ from sfdfont.error import SfdError, SfdLimitError, SfdParseError, SfdUnsupported
 from sfdfont.font import SfdFont
 from sfdfont.glyph import SfdAlternateUnicode, SfdGlyph
 from sfdfont.layer import SfdLayer, SfdLayerInfo
+from sfdfont.layout import (
+    SfdContext,
+    SfdContextRule,
+    SfdKerningClass,
+    SfdLookup,
+    SfdLookupFeature,
+    SfdLookupSubtable,
+    SfdSequenceLookup,
+)
 from sfdfont.limits import SfdReadLimits
 from sfdfont.metadata import SfdLanguageNames, SfdMetadata
 from sfdfont.outline import SfdContour, SfdPoint
@@ -13,6 +22,13 @@ from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
 
 __all__ = [
+    'SfdLookupSubtable',
+    'SfdLookupFeature',
+    'SfdLookup',
+    'SfdSequenceLookup',
+    'SfdContextRule',
+    'SfdContext',
+    'SfdKerningClass',
     'SfdBitmapGlyph',
     'SfdBitmapProperty',
     'SfdBitmapReference',
