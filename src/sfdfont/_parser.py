@@ -306,7 +306,7 @@ def glyph(reader: Reader, font: SfdFont, *, cid_child: bool = False) -> SfdGlyph
     name = string(reader.line())
     if not name:
         reader.fail('empty glyph name')
-    result = SfdGlyph(name=name, glyph_id=reader.next_gid)
+    result = SfdGlyph(name=name, glyph_id=reader.next_gid, flags='')
     current: SfdLayer | None = None
     seen = set()
     while True:
@@ -341,6 +341,11 @@ def glyph(reader: Reader, font: SfdFont, *, cid_child: bool = False) -> SfdGlyph
                 result.layer_count = values[0]
             elif values[0] != len(font.layer_infos):
                 reader.fail('glyph LayerCount differs from font')
+        elif key == 'Flags:':
+            if key in seen:
+                reader.fail('duplicate glyph Flags')
+            seen.add(key)
+            result.flags = decode_text(reader.line())
         elif key in ('AltUni:', 'AltUni2:'):
             for item in reader.line().split():
                 if key == 'AltUni:':

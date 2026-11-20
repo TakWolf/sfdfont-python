@@ -30,6 +30,7 @@ def records(items) -> bytes:
         'Encoding:',
         'Width:',
         'VWidth:',
+        'Flags:',
         'Layer:',
         'LayerCount:',
         'FontName:',
@@ -202,6 +203,7 @@ def _dump_body(font, *, cid_child: bool = False) -> bytes:
             line('StartChar:', quote(glyph.name))
             line('Encoding:', f'{glyph.encoding} {glyph.unicode} {glyph.glyph_id}'.encode())
             line('Width:', str(glyph.width).encode())
+            line('Flags:', glyph.flags.encode())
             if glyph.vertical_width is not None:
                 line('VWidth:', str(glyph.vertical_width).encode())
             if glyph.alternate_unicodes:

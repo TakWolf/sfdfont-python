@@ -75,6 +75,7 @@ class SfdGlyph:
     records: list[SfdRecord]
     payloads: list[SfdPayload]
     layer_count: int | None
+    flags: str
 
     def __init__(
         self,
@@ -89,6 +90,7 @@ class SfdGlyph:
         records: list[SfdRecord] | None = None,
         payloads: list[SfdPayload] | None = None,
         layer_count: int | None = None,
+        flags: str = 'W',
     ) -> None:
         self.name = name
         self.glyph_id = glyph_id
@@ -101,6 +103,7 @@ class SfdGlyph:
         self.records = records if records is not None else []
         self.payloads = payloads if payloads is not None else []
         self.layer_count = layer_count
+        self.flags = flags
 
     def __copy__(self) -> SfdGlyph:
         return SfdGlyph(
@@ -115,6 +118,7 @@ class SfdGlyph:
             self.records,
             self.payloads,
             self.layer_count,
+            self.flags,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdGlyph:
@@ -131,6 +135,7 @@ class SfdGlyph:
         copied.records = deepcopy(self.records, memo)
         copied.payloads = deepcopy(self.payloads, memo)
         copied.layer_count = deepcopy(self.layer_count, memo)
+        copied.flags = deepcopy(self.flags, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -148,6 +153,7 @@ class SfdGlyph:
             and self.records == other.records
             and self.payloads == other.payloads
             and self.layer_count == other.layer_count
+            and self.flags == other.flags
         )
 
     def __repr__(self) -> str:
@@ -163,7 +169,8 @@ class SfdGlyph:
             f'layers={self.layers!r}, '
             f'records={self.records!r}, '
             f'payloads={self.payloads!r}, '
-            f'layer_count={self.layer_count!r}'
+            f'layer_count={self.layer_count!r}, '
+            f'flags={self.flags!r}'
             f')'
         )
 

@@ -118,6 +118,7 @@ def validate(font, *, layout: bool = True) -> None:
         unicode_value(glyph.unicode, 'glyph Unicode')
         check(bool(glyph.name) and '\0' not in glyph.name, 'invalid glyph name')
         number(glyph.width, 'glyph width', -32768, 32767)
+        check(isinstance(glyph.flags, str) and set(glyph.flags) <= set('HMWOI'), 'invalid glyph flags')
         if glyph.vertical_width is not None:
             number(glyph.vertical_width, 'glyph vertical width', -32768, 32767)
         for alt in glyph.alternate_unicodes:
