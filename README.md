@@ -94,18 +94,24 @@ if __name__ == '__main__':
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.
-- Glyph encodings, alternate Unicode/variation mappings, vector references and
-  guideline contours.
+- Glyph encodings, alternate Unicode/variation mappings, DupEnc encoding aliases,
+  vector references and guideline contours. `encoding_aliases` maps additional
+  encoding slots to glyph IDs; `find_glyph_by_encoding()` also searches these aliases.
 - Bitmap strikes with 1/2/4/8-bit sample depths, properties and bitmap references.
   Grayscale data uses one byte per sample; monochrome rows use packed bits.
 - Old Image and PNG Image2 payloads, TrueType binary tables and instructions are
   retained as bytes. Images are not rendered and instructions are not executed.
+- Lookup definitions, contextual/chained/reverse substitution and positioning
+  records, horizontal/vertical kerning classes (legacy, version 2 and version 3),
+  and legacy table ordering are read using their counts, lengths and delimiters.
+  Their encoded contents are retained as `SfdRecord` values in `metadata.records`.
 - Known terminated text blocks and ordinary additional records are retained without
   interpreting their semantics. Pickled data is retained without unpickling.
 
-CID, Multiple Master, Type 3 multilayer paint data, complex contextual layout and
-kerning-class blocks, Spiro, named contours/points and undo/redo blocks are not
-implemented. Versions 0/4, sfdir directories and asfd recovery files are not supported.
+Layout records are preserved with structural checks; lookup dependencies are not
+resolved, and editable GSUB/GPOS models and shaping operations are not implemented.
+CID, Multiple Master, Type 3 multilayer paint data, Spiro, named contours/points and
+undo/redo blocks are not implemented. Versions 0/4, sfdir directories and asfd recovery files are not supported.
 Unsupported structures raise `SfdUnsupportedError`; malformed structures raise
 `SfdParseError`. Accepting a version header does not imply every feature is supported.
 
