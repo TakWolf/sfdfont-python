@@ -74,6 +74,7 @@ class SfdGlyph:
     layers: list[SfdLayer]
     records: list[SfdRecord]
     payloads: list[SfdPayload]
+    layer_count: int | None
 
     def __init__(
         self,
@@ -87,6 +88,7 @@ class SfdGlyph:
         layers: list[SfdLayer] | None = None,
         records: list[SfdRecord] | None = None,
         payloads: list[SfdPayload] | None = None,
+        layer_count: int | None = None,
     ) -> None:
         self.name = name
         self.glyph_id = glyph_id
@@ -98,6 +100,7 @@ class SfdGlyph:
         self.layers = layers if layers is not None else []
         self.records = records if records is not None else []
         self.payloads = payloads if payloads is not None else []
+        self.layer_count = layer_count
 
     def __copy__(self) -> SfdGlyph:
         return SfdGlyph(
@@ -111,6 +114,7 @@ class SfdGlyph:
             self.layers,
             self.records,
             self.payloads,
+            self.layer_count,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdGlyph:
@@ -126,6 +130,7 @@ class SfdGlyph:
         copied.layers = deepcopy(self.layers, memo)
         copied.records = deepcopy(self.records, memo)
         copied.payloads = deepcopy(self.payloads, memo)
+        copied.layer_count = deepcopy(self.layer_count, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -142,6 +147,7 @@ class SfdGlyph:
             and self.layers == other.layers
             and self.records == other.records
             and self.payloads == other.payloads
+            and self.layer_count == other.layer_count
         )
 
     def __repr__(self) -> str:
@@ -156,7 +162,8 @@ class SfdGlyph:
             f'alternate_unicodes={self.alternate_unicodes!r}, '
             f'layers={self.layers!r}, '
             f'records={self.records!r}, '
-            f'payloads={self.payloads!r}'
+            f'payloads={self.payloads!r}, '
+            f'layer_count={self.layer_count!r}'
             f')'
         )
 

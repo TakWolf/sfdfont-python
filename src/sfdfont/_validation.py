@@ -113,8 +113,20 @@ def validate(font) -> None:
             number(alt.font_id, 'alternate font ID', 0)
         layer_ids = [layer.index for layer in glyph.layers]
         check(len(set(layer_ids)) == len(layer_ids), 'duplicate glyph layer')
-        check(all(index in indices for index in layer_ids), 'undefined glyph layer')
+        if font.multilayer:
+            count = glyph.layer_count if glyph.layer_count is not None else max(layer_ids, default=1) + 1
+            number(count, 'Type 3 layer count', 2)
+            check(all(0 <= index < count for index in layer_ids), 'undefined Type 3 glyph layer')
+        else:
+            check(all(index in indices for index in layer_ids), 'undefined glyph layer')
         for layer in glyph.layers:
+            if font.multilayer and layer.index > 0:
+                from sfdfont._paint import validate_paint
+
+                check(layer.paint is not None, 'Type 3 foreground layers require paint settings')
+                validate_paint(layer.paint)
+            else:
+                check(layer.paint is None, 'paint settings require Type 3 foreground layers')
             contours(layer.contours)
             check(not any(record.keyword in LAYOUT_KEYS for record in layer.records), 'layout record in glyph layer')
         check(not any(record.keyword in LAYOUT_KEYS for record in glyph.records), 'layout record in glyph')

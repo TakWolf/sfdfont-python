@@ -45,6 +45,7 @@ def records(items) -> bytes:
         'LangName:',
         'Order2:',
         'DupEnc:',
+        'MultiLayer:',
     }
     for item in items:
         if item.keyword in forbidden or not isinstance(item.value, bytes):
@@ -117,6 +118,8 @@ def dump_font(font) -> bytes:
 
     line('SplineFontDB:', font.version.encode())
     meta = font.metadata
+    if font.multilayer:
+        line('MultiLayer:', b'1')
     if not re.fullmatch(r'[^\s\x00]+', meta.font_name):
         raise SfdValidationError('FontName must be a nonempty token')
     for key, value in [
@@ -185,7 +188,10 @@ def dump_font(font) -> bytes:
                     for alt in glyph.alternate_unicodes
                 ),
             )
-        if font.version not in ('1.0', '2.0'):
+        if font.multilayer:
+            if glyph.layer_count is not None:
+                line('LayerCount:', str(glyph.layer_count).encode())
+        elif font.version not in ('1.0', '2.0'):
             line('LayerCount:', str(len(font.layer_infos)).encode())
         result.append(records(glyph.records))
         for item in glyph.payloads:
@@ -193,10 +199,15 @@ def dump_font(font) -> bytes:
                 raise SfdValidationError('glyph-level payload must be TtfInstrs')
             result.append(binary(item))
         for layer in glyph.layers:
-            line(
-                'Back' if layer.index == 0 else 'Fore' if layer.index == 1 else 'Layer:',
-                str(layer.index).encode() if layer.index > 1 else b'',
-            )
+            if font.multilayer and layer.index > 0:
+                from sfdfont._paint import encode_paint
+
+                line('Layer:', encode_paint(layer.index, layer.paint))
+            else:
+                line(
+                    'Back' if layer.index == 0 else 'Fore' if layer.index == 1 else 'Layer:',
+                    str(layer.index).encode() if layer.index > 1 else b'',
+                )
             result.append(splines(layer.contours))
             for ref in layer.references:
                 value = b' '.join(

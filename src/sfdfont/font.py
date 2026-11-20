@@ -26,6 +26,7 @@ class SfdFont:
     grid_quadratic: bool
     _snapshot: SfdFont | None
     encoding_aliases: dict[int, int]
+    multilayer: bool
 
     def __init__(
         self,
@@ -40,6 +41,7 @@ class SfdFont:
         grid_quadratic: bool = False,
         _snapshot: SfdFont | None = None,
         encoding_aliases: dict[int, int] | None = None,
+        multilayer: bool = False,
     ) -> None:
         self.version = version
         self.metadata = metadata if metadata is not None else SfdMetadata()
@@ -54,6 +56,7 @@ class SfdFont:
         self.grid_quadratic = grid_quadratic
         self._snapshot = _snapshot
         self.encoding_aliases = encoding_aliases if encoding_aliases is not None else {}
+        self.multilayer = multilayer
 
     def __copy__(self) -> SfdFont:
         return SfdFont(
@@ -68,6 +71,7 @@ class SfdFont:
             self.grid_quadratic,
             self._snapshot,
             self.encoding_aliases,
+            self.multilayer,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdFont:
@@ -84,6 +88,7 @@ class SfdFont:
         copied.grid_quadratic = deepcopy(self.grid_quadratic, memo)
         copied._snapshot = deepcopy(self._snapshot, memo)
         copied.encoding_aliases = deepcopy(self.encoding_aliases, memo)
+        copied.multilayer = deepcopy(self.multilayer, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -100,6 +105,7 @@ class SfdFont:
             and self.guidelines == other.guidelines
             and self.grid_quadratic == other.grid_quadratic
             and self.encoding_aliases == other.encoding_aliases
+            and self.multilayer == other.multilayer
         )
 
     def __repr__(self) -> str:
@@ -114,7 +120,8 @@ class SfdFont:
             f'payloads={self.payloads!r}, '
             f'guidelines={self.guidelines!r}, '
             f'grid_quadratic={self.grid_quadratic!r}, '
-            f'encoding_aliases={self.encoding_aliases!r}'
+            f'encoding_aliases={self.encoding_aliases!r}, '
+            f'multilayer={self.multilayer!r}'
             f')'
         )
 

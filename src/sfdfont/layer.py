@@ -4,6 +4,7 @@ from copy import copy, deepcopy
 from typing import Any
 
 from sfdfont.outline import SfdContour
+from sfdfont.paint import SfdPaint
 from sfdfont.payload import SfdPayload
 from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
@@ -84,6 +85,7 @@ class SfdLayer:
     references: list[SfdReference]
     records: list[SfdRecord]
     images: list[SfdPayload]
+    paint: SfdPaint | None
 
     def __init__(
         self,
@@ -92,12 +94,14 @@ class SfdLayer:
         references: list[SfdReference] | None = None,
         records: list[SfdRecord] | None = None,
         images: list[SfdPayload] | None = None,
+        paint: SfdPaint | None = None,
     ) -> None:
         self.index = index
         self.contours = contours if contours is not None else []
         self.references = references if references is not None else []
         self.records = records if records is not None else []
         self.images = images if images is not None else []
+        self.paint = paint
 
     def __copy__(self) -> SfdLayer:
         return SfdLayer(
@@ -106,6 +110,7 @@ class SfdLayer:
             self.references,
             self.records,
             self.images,
+            self.paint,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdLayer:
@@ -116,6 +121,7 @@ class SfdLayer:
         copied.references = deepcopy(self.references, memo)
         copied.records = deepcopy(self.records, memo)
         copied.images = deepcopy(self.images, memo)
+        copied.paint = deepcopy(self.paint, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -127,6 +133,7 @@ class SfdLayer:
             and self.references == other.references
             and self.records == other.records
             and self.images == other.images
+            and self.paint == other.paint
         )
 
     def __repr__(self) -> str:
@@ -136,7 +143,8 @@ class SfdLayer:
             f'contours={self.contours!r}, '
             f'references={self.references!r}, '
             f'records={self.records!r}, '
-            f'images={self.images!r}'
+            f'images={self.images!r}, '
+            f'paint={self.paint!r}'
             f')'
         )
 

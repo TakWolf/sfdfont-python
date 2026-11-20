@@ -17,11 +17,13 @@ from sfdfont.layout import (
 from sfdfont.limits import SfdReadLimits
 from sfdfont.metadata import SfdLanguageNames, SfdMetadata
 from sfdfont.outline import SfdContour, SfdPoint, SfdSpiroPoint
+from sfdfont.paint import SfdPaint
 from sfdfont.payload import SfdPayload
 from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
 
 __all__ = [
+    'SfdPaint',
     'SfdSpiroPoint',
     'SfdLookupSubtable',
     'SfdLookupFeature',

@@ -19,6 +19,7 @@ def check_preservation(font) -> None:
         return
     same = (
         font.version == original.version
+        and font.multilayer == original.multilayer
         and font.layer_infos == original.layer_infos
         and font.encoding_size == original.encoding_size
         and font.encoding_aliases == original.encoding_aliases
@@ -39,7 +40,8 @@ def check_preservation(font) -> None:
                 glyph.encoding,
                 glyph.unicode,
                 glyph.alternate_unicodes,
-                glyph.layers,
+                glyph.layer_count,
+                [(v.index, v.contours, v.references, v.records, v.images) for v in glyph.layers],
                 glyph.records,
                 glyph.payloads,
             ) != (
@@ -48,7 +50,8 @@ def check_preservation(font) -> None:
                 before.encoding,
                 before.unicode,
                 before.alternate_unicodes,
-                before.layers,
+                before.layer_count,
+                [(v.index, v.contours, v.references, v.records, v.images) for v in before.layers],
                 before.records,
                 before.payloads,
             ):

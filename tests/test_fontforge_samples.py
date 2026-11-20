@@ -9,7 +9,6 @@ from sfdfont import SfdFont, SfdParseError, SfdUnsupportedError
     ('font_file_name', 'error_type', 'message'),
     [
         ('CaslonMM.sfd', SfdUnsupportedError, 'MMCounts:'),
-        ('DataURI.sfd', SfdUnsupportedError, 'MultiLayer:'),
         ('FormalScript.sfd', SfdParseError, 'duplicate glyph ID'),
         ('OmittedCharBugs.sfd', SfdParseError, 'dangling glyph reference'),
         ('SFDBitmapParsing.sfd', SfdParseError, 'BeginChars count'),

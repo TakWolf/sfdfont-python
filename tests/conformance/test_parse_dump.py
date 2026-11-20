@@ -17,6 +17,7 @@ from sfdfont import SfdFont
         ('fontforge', 'BoxesAndBounds.sfd'),
         ('fontforge', 'CMAPEncTest.sfd'),
         ('fontforge', 'Caliban.sfd'),
+        ('fontforge', 'DataURI.sfd'),
         ('fontforge', 'DejaVuSerif.sfd'),
         ('fontforge', 'DirectionTest.sfd'),
         ('fontforge', 'Hinting.sfd'),

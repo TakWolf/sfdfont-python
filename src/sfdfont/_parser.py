@@ -295,6 +295,8 @@ def glyph(reader: Reader, font: SfdFont) -> SfdGlyph:
                 result.width = values[0]
             elif key == 'VWidth:':
                 result.vertical_width = values[0]
+            elif font.multilayer:
+                result.layer_count = values[0]
             elif values[0] != len(font.layer_infos):
                 reader.fail('glyph LayerCount differs from font')
         elif key in ('AltUni:', 'AltUni2:'):
@@ -308,12 +310,20 @@ def glyph(reader: Reader, font: SfdFont) -> SfdGlyph:
                     result.alternate_unicodes.append(SfdAlternateUnicode(uni, -1 if vs == 0xFFFFFFFF else vs, fid))
         elif key in ('Fore', 'Back', 'Layer:'):
             index = {'Fore': 1, 'Back': 0}.get(key)
+            paint = None
             if index is None:
-                index = integer(reader.line())
+                if font.multilayer:
+                    from sfdfont._paint import decode_paint
+
+                    index, paint = decode_paint(reader.line())
+                else:
+                    index = integer(reader.line())
             current = next((layer for layer in result.layers if layer.index == index), None)
             if current is None:
                 current = SfdLayer(index)
                 result.layers.append(current)
+            if paint is not None:
+                current.paint = paint
         elif key == 'SplineSet' or (font.version in ('1.0', '2.0') and re.fullmatch(r'[-+\d.]+', key)):
             if current is None:
                 current = SfdLayer()
@@ -437,6 +447,11 @@ def _parse_font(reader: Reader) -> SfdFont:
         elif key in ('Copyright:', 'Comments:'):
             value = decode_text(reader.escaped_line())
             setattr(font.metadata, 'copyright' if key == 'Copyright:' else 'comments', value)
+        elif key in ('MultiLayer:', 'Multilayer:'):
+            value = integer(reader.line())
+            if value not in (0, 1):
+                reader.fail('invalid MultiLayer flag')
+            font.multilayer = bool(value)
         elif key in _TEXT_FIELDS:
             setattr(font.metadata, _TEXT_FIELDS[key], decode_text(reader.line()))
         elif key in ('UComments:', 'FontLog:'):
