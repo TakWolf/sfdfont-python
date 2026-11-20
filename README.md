@@ -122,6 +122,45 @@ replace the entry in `font.metadata.records` to apply changes. Likewise,
 `font.find_lookup(name)` returns an independent lookup; use `font.set_lookup()`
 to replace or append its definition.
 
+### Edit glyph positioning and anchors
+
+`SfdPosition` and `SfdPairPosition` contain `SfdPositionValue` objects with offsets,
+advances and device adjustments. `SfdSubstitution` covers single, multiple,
+alternate and ligature substitutions. `SfdKerningPairs` / `SfdKerningPair` cover
+horizontal and vertical pair lists; `SfdLigatureCarets` stores insertion positions.
+These models target the modern records with a `2` suffix, in SFD 2.0 and later.
+Legacy records are retained without implicit conversion.
+
+```python
+from sfdfont import SfdPairPosition, SfdPositionValue, SfdSubstitution
+
+pair = SfdPairPosition(
+    'kern-subtable',
+    'V',
+    first=SfdPositionValue(x_advance=-80, x_advance_adjustments={12: 1, 13: 0}),
+)
+replacement = SfdSubstitution('Substitution2:', 'smallcaps-subtable', ['a.sc'])
+pair_record = pair.to_record()
+substitution_record = replacement.to_record()
+```
+
+Referenced lookup subtables and target glyphs must already exist in the font.
+Use `SfdAnchor` for `AnchorPoint:` records in either legacy or modern SFD:
+
+```python
+from sfdfont import SfdAnchor
+
+anchor = SfdAnchor.from_record(anchor_record)
+anchor.y += 20
+updated_record = anchor.to_record()
+```
+
+Replace the original entry in `glyph.records` or the corresponding `layer.records`
+to apply the change. Anchors retain their role, ligature component index, device
+adjustments and optional TrueType point index. `SfdAnchorClasses` /
+`SfdAnchorClass` describe modern class definitions in `font.metadata.records`.
+See `examples/edit_anchors.py` for a complete edit using DejaVuSerif.
+
 ### Edit MATH data
 
 MATH constants and glyph metrics use `SfdMathValue`; assemblies use
@@ -172,7 +211,8 @@ using an upstream test font.
   retained as bytes. Images are not rendered and instructions are not executed.
 - Editable lookup definitions, contextual/chained/reverse substitution and
   positioning, horizontal/vertical kerning classes (legacy, version 2 and version 3),
-  and AAT state machines. Lookup ownership, glyph references and dependency cycles
+  and AAT state machines. Glyph positioning, substitutions, pair kerning, ligature
+  carets and anchors also have editable models. Lookup ownership, glyph references and dependency cycles
   are checked. Shaping is outside the scope of the library.
 - BASE baselines and language extents, JSTF justification and Mac feature names
   are structurally checked and retained as records. Editable MATH models cover

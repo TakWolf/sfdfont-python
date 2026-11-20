@@ -1,3 +1,4 @@
+from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
 from sfdfont._layout import LAYOUT_KEYS
 from sfdfont._layout_validation import layout_identity
 from sfdfont._math import GLYPH_MATH_KEYS, math_constant
@@ -5,7 +6,11 @@ from sfdfont.error import SfdValidationError
 
 
 def protected_records(items):
-    return [r for r in items if r.keyword not in GLYPH_MATH_KEYS | LAYOUT_KEYS and not math_constant(r.keyword)]
+    return [
+        r
+        for r in items
+        if r.keyword not in GLYPH_MATH_KEYS | GLYPH_LAYOUT_KEYS | LAYOUT_KEYS and not math_constant(r.keyword)
+    ]
 
 
 def check_preservation(font) -> None:

@@ -81,6 +81,7 @@ def contours(items) -> None:
 
 def validate(font, *, layout: bool = True) -> None:
     from sfdfont._extended import EXTENDED_KEYS
+    from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
 
     def font_record(record) -> bool:
         return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS | {
@@ -99,6 +100,7 @@ def validate(font, *, layout: bool = True) -> None:
         validate_mm(font)
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
     for record in font.metadata.records:
+        check(record.keyword not in GLYPH_LAYOUT_KEYS, 'glyph layout record in font metadata')
         check(record.keyword != 'UndoRedoHistory', 'undo history belongs in a glyph layer')
         check(
             version_matches(record.keyword, font.version), f'layout record {record.keyword} conflicts with SFD version'
@@ -147,6 +149,7 @@ def validate(font, *, layout: bool = True) -> None:
             else:
                 check(layer.paint is None, 'paint settings require Type 3 layers')
             for record in layer.records:
+                check(version_matches(record.keyword, font.version), 'glyph layout record conflicts with SFD version')
                 if record.keyword == 'UndoRedoHistory':
                     from sfdfont._history import history_layer
 
@@ -157,6 +160,8 @@ def validate(font, *, layout: bool = True) -> None:
                         raise SfdValidationError(str(error)) from error
             contours(layer.contours)
             check(not any(font_record(record) for record in layer.records), 'layout record in glyph layer')
+        for record in glyph.records:
+            check(version_matches(record.keyword, font.version), 'glyph layout record conflicts with SFD version')
         check(not any(font_record(record) for record in glyph.records), 'layout record in glyph')
         check(not any(r.keyword == 'UndoRedoHistory' for r in glyph.records), 'undo history belongs in a glyph layer')
     for encoding, target in font.encoding_aliases.items():

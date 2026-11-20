@@ -6,6 +6,18 @@ from sfdfont.cid import SfdCidInfo
 from sfdfont.error import SfdError, SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
 from sfdfont.font import SfdFont
 from sfdfont.glyph import SfdAlternateUnicode, SfdGlyph
+from sfdfont.glyph_layout import (
+    SfdAnchor,
+    SfdAnchorClass,
+    SfdAnchorClasses,
+    SfdKerningPair,
+    SfdKerningPairs,
+    SfdLigatureCarets,
+    SfdPairPosition,
+    SfdPosition,
+    SfdPositionValue,
+    SfdSubstitution,
+)
 from sfdfont.layer import SfdLayer, SfdLayerInfo
 from sfdfont.layout import (
     SfdContext,
@@ -27,6 +39,16 @@ from sfdfont.reference import SfdReference
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdKerningPair',
+    'SfdKerningPairs',
+    'SfdPositionValue',
+    'SfdPosition',
+    'SfdPairPosition',
+    'SfdSubstitution',
+    'SfdLigatureCarets',
+    'SfdAnchor',
+    'SfdAnchorClass',
+    'SfdAnchorClasses',
     'SfdMathValue',
     'SfdMathKern',
     'SfdMathKernEntry',

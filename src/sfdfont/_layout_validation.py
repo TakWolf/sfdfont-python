@@ -1,10 +1,12 @@
 import re
 
-from sfdfont._layout import AAT_KEYS, CONTEXT_KEYS, KERN_CLASS_KEYS, LayoutReader
+from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
+from sfdfont._glyph_layout import decode as decode_glyph_layout
+from sfdfont._layout import AAT_KEYS, CONTEXT_KEYS, KERN_CLASS_KEYS
 from sfdfont._reader import Reader
-from sfdfont._strings import decode_text
 from sfdfont.aat import SfdStateMachine
 from sfdfont.error import SfdParseError, SfdValidationError
+from sfdfont.glyph_layout import SfdAnchorClasses
 from sfdfont.layout import SfdContext, SfdKerningClass, SfdLookup
 
 
@@ -166,45 +168,31 @@ def validate_layout(font) -> None:
         anchors = set()
         for record in font.metadata.records:
             if record.keyword == 'AnchorClass2:':
-                stream = LayoutReader(Reader(record.value))
-                while stream.peek():
-                    name = stream.quoted()
-                    target = stream.quoted() if stream.peek() == b'"' else ''
-                    if target:
-                        subtable(target, {259, 260, 261, 262})
-                    need(name not in anchors, 'duplicate anchor class name')
-                    anchors.add(name)
-                    if stream.peek() not in (b'"', b''):
-                        stream.integer()
+                for anchor in SfdAnchorClasses.from_record(record).classes:
+                    if anchor.subtable:
+                        subtable(anchor.subtable, {259, 260, 261, 262})
+                    need(anchor.name not in anchors, 'duplicate anchor class name')
+                    anchors.add(anchor.name)
             elif record.keyword == 'AnchorClass:':
                 from sfdfont._strings import decode_utf7
 
                 anchors.update(decode_utf7(value) for value in re.findall(rb'"([^"]*)"', record.value))
         for record in glyph_records(font):
+            value = decode_glyph_layout(record, GLYPH_LAYOUT_KEYS) if record.keyword in GLYPH_LAYOUT_KEYS else None
             if record.keyword in modern_pst:
-                stream = LayoutReader(Reader(record.value))
-                subtable(stream.quoted(), {modern_pst[record.keyword]})
-                rest = decode_text(stream.reader.line()).split()
+                subtable(value.subtable, {modern_pst[record.keyword]})
                 if record.keyword in ('Substitution2:', 'MultipleSubs2:', 'AlternateSubs2:', 'Ligature2:'):
-                    check_names(rest)
+                    check_names(value.glyphs)
                 elif record.keyword == 'PairPos2:':
-                    need(bool(rest), 'pair positioning needs a target glyph')
-                    check_names(rest[:1])
+                    check_names([value.glyph])
             elif record.keyword in ('Kerns2:', 'VKerns2:'):
-                stream = LayoutReader(Reader(record.value))
-                while stream.peek():
-                    need(stream.integer(maximum=0x7FFFFFFF) in gids, 'dangling kerning glyph ID')
-                    stream.integer(-32768, 32767)
-                    owner = subtable(stream.quoted(), {258})
-                    need(
-                        any(bool(sub.vertical) == record.keyword.startswith('V') for sub in owner.subtables),
-                        'kerning pair direction mismatch',
-                    )
-                    stream.device_table()
+                for pair in value.pairs:
+                    need(pair.target in gids, 'dangling kerning glyph ID')
+                    owner = subtable(pair.subtable, {258})
+                    definition = next(sub for sub in owner.subtables if sub.name == pair.subtable)
+                    need(bool(definition.vertical) == record.keyword.startswith('V'), 'kerning pair direction mismatch')
             elif record.keyword == 'AnchorPoint:':
-                stream = LayoutReader(Reader(record.value))
-                name = stream.quoted()
-                need(name in anchors, f'undefined anchor class {name!r}')
+                need(value.name in anchors, f'undefined anchor class {value.name!r}')
     except (SfdParseError, UnicodeError) as error:
         raise SfdValidationError(str(error)) from error
 
@@ -225,4 +213,7 @@ def layout_identity(font):
         elif record.keyword in AAT_KEYS:
             machine = SfdStateMachine.from_record(record)
             result.append((record.keyword, machine.subtable, machine.feature, machine.setting))
+        elif record.keyword == 'AnchorClass2:':
+            classes = SfdAnchorClasses.from_record(record).classes
+            result.append((record.keyword, tuple((v.name, v.subtable) for v in classes)))
     return result

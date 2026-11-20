@@ -36,12 +36,16 @@ AAT_KEYS = {
     for kind in ('Indic', 'Context', 'Ligature', 'Simple', 'Kern', 'Insert')
     for suffix in ('', '2')
 }
-LAYOUT_KEYS = CONTEXT_KEYS | KERN_CLASS_KEYS | AAT_KEYS | {'Lookup:', 'TableOrder:'}
+SUBSTITUTION_KEYS = {'Substitution2:', 'MultipleSubs2:', 'AlternateSubs2:', 'Ligature2:'}
+PST_KEYS = SUBSTITUTION_KEYS | {'Position2:', 'PairPos2:', 'LCarets2:'}
+LAYOUT_KEYS = CONTEXT_KEYS | KERN_CLASS_KEYS | AAT_KEYS | {'Lookup:', 'TableOrder:', 'AnchorClass2:'}
 
 
 def version_matches(key: str, version: str) -> bool:
-    if key == 'Lookup:':
+    if key in PST_KEYS | {'Lookup:', 'AnchorClass2:'}:
         return version != '1.0'
+    if key in {key.replace('2:', ':') for key in PST_KEYS} | {'AnchorClass:'}:
+        return version == '1.0'
     if key == 'TableOrder:':
         return version == '1.0'
     if key in CONTEXT_KEYS | KERN_CLASS_KEYS | AAT_KEYS:

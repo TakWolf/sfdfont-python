@@ -121,6 +121,10 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS, ROOT_LAYOUT_KEYS, layout_record
+
+    if key in GLYPH_LAYOUT_KEYS | ROOT_LAYOUT_KEYS:
+        return layout_record(reader, key)
     if key in ('BeginPrivate:', 'ShortTable:'):
         from sfdfont._tables import private_record, short_table_record
 
