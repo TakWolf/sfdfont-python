@@ -87,6 +87,7 @@ def validate(font, *, layout: bool = True) -> None:
     from sfdfont._legacy_layout import LEGACY_GLYPH_KEYS
     from sfdfont._tables import decode_private, decode_short_table
     from sfdfont._tex import TEX_GLYPH_KEYS, validate_tex
+    from sfdfont.legacy_names import SfdStyleMapName
 
     def font_record(record) -> bool:
         return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS | INFO_KEYS | {
@@ -105,6 +106,13 @@ def validate(font, *, layout: bool = True) -> None:
         validate_mm(font)
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
     validate_info(font.metadata.records)
+    for names in font.metadata.language_names:
+        for name in names.style_map_family_names:
+            check(
+                isinstance(name, SfdStyleMapName) and name.keyword == 'StyleMapFamilyName:',
+                'invalid style mapping family name prefix',
+            )
+            name.to_record()
     validate_tex(font)
     for record in font.metadata.records:
         check(

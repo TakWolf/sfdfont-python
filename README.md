@@ -261,6 +261,22 @@ data and does not check a generated WOFF header. While metadata text is retained
 the existing protection for glyph identities and outlines remains in effect.
 See `examples/create_woff_metadata.py` for a complete example.
 
+### Retain legacy style mapping names
+
+`SfdStyleMapName(keyword, name, quoted=True)` reads and writes `OS2StyleName:`,
+`StyleMapFamilyName:` and `OS2FamilyName:`. Both SFD UTF-7 strings and older
+unquoted text are supported, with the original form retained. Ordered legacy
+records and repeated names are retained; no StyleMap fallback or name-table
+migration is applied automatically.
+
+Family-name prefixes before a `LangName:` are stored in that
+`SfdLanguageNames.style_map_family_names` list as `SfdStyleMapName` objects and
+written immediately before it.
+Prefixes after the last language record remain in `font.metadata.records`.
+This preserves the ordering needed by FontForge's legacy interpretation while
+keeping the language's own name values unchanged. FontForge may normalize or
+discard legacy fields on import. See `examples/create_legacy_names.py`.
+
 ### Retain UFO groups and raw kerning
 
 `SfdGlyphGroup(name, glyphs)` reads and writes `Group:`; `SfdGroupKerningPair`
@@ -485,6 +501,8 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
   bindings and keeping them separate from native kerning tables.
 - WOFF version components and metadata text, without XML parsing or automatic
   version defaulting.
+- Legacy style mapping names and their ordering relative to language name records,
+  without applying legacy fallback or migration rules.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.

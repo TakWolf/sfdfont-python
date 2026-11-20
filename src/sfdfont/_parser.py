@@ -508,6 +508,7 @@ def _parse_font(reader: Reader, version: str | None = None, *, cid_child: bool =
     declared_layers = 2
     explicit_layers = False
     seen_chars = False
+    pending_style_names = []
     while True:
         key = reader.word()
         if key == ('EndSubSplineFont' if cid_child else 'EndSplineFont'):
@@ -515,13 +516,17 @@ def _parse_font(reader: Reader, version: str | None = None, *, cid_child: bool =
                 reader.fail('missing BeginChars')
             if len(font.layer_infos) != declared_layers:
                 reader.fail('LayerCount differs from layer definitions')
+            if pending_style_names:
+                from sfdfont._legacy_names import restore_pending_names
+
+                font.metadata.records[:] = restore_pending_names(font.metadata.records, pending_style_names)
             return font
         if not key:
             reader.fail('missing EndSplineFont')
         if key == 'MMCounts:' and not nested:
             from sfdfont._family import parse_mm
 
-            if seen_chars or font != SfdFont(version=version):
+            if seen_chars or pending_style_names or font != SfdFont(version=version):
                 reader.fail('MMCounts must precede font metadata')
             return parse_mm(reader, version)
         if key == 'BeginSubFonts:' and not cid_child:
@@ -619,11 +624,22 @@ def _parse_font(reader: Reader, version: str | None = None, *, cid_child: bool =
             setattr(font.metadata, 'comments' if key == 'UComments:' else 'font_log', string(reader.line()))
         elif key in ('Ascent:', 'Descent:'):
             setattr(font.metadata, key[:-1].lower(), integer(reader.line()))
+        elif key == 'StyleMapFamilyName:':
+            pending_style_names.append((len(font.metadata.records), record(reader, key)))
         elif key == 'LangName:':
+            from sfdfont._legacy_names import decode_style_map_name
+
             fields = tokens(reader.line())
             if not fields:
                 reader.fail('missing LangName language')
-            font.metadata.language_names.append(SfdLanguageNames(integer(fields[0]), [string(v) for v in fields[1:]]))
+            font.metadata.language_names.append(
+                SfdLanguageNames(
+                    integer(fields[0]),
+                    [string(v) for v in fields[1:]],
+                    [decode_style_map_name(item) for _, item in pending_style_names],
+                )
+            )
+            pending_style_names.clear()
         elif key == 'Order2:':
             value = integer(reader.line())
             if value not in (0, 1):

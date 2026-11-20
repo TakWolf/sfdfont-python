@@ -55,6 +55,7 @@ from sfdfont.legacy_layout import (
     SfdLegacyKerningPairs,
     SfdLegacyPst,
 )
+from sfdfont.legacy_names import SfdStyleMapName
 from sfdfont.limits import SfdReadLimits
 from sfdfont.mac_features import SfdMacFeature, SfdMacFeatures, SfdMacSetting
 from sfdfont.marks import SfdMarkClasses, SfdMarkGroup, SfdMarkSets
@@ -74,6 +75,7 @@ from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdName
 from sfdfont.woff import SfdWoffMetadata
 
 __all__ = [
+    'SfdStyleMapName',
     'SfdWoffMetadata',
     'SfdGlyphGroup',
     'SfdGroupKerningPair',

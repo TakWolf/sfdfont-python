@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import copy, deepcopy
 from typing import Any
 
+from sfdfont.legacy_names import SfdStyleMapName
 from sfdfont.metrics import SfdFontMetric
 from sfdfont.record import SfdRecord
 
@@ -10,19 +11,23 @@ from sfdfont.record import SfdRecord
 class SfdLanguageNames:
     language: int
     names: list[str]
+    style_map_family_names: list[SfdStyleMapName]
 
     def __init__(
         self,
         language: int,
         names: list[str] | None = None,
+        style_map_family_names: list[SfdStyleMapName] | None = None,
     ) -> None:
         self.language = language
         self.names = names if names is not None else []
+        self.style_map_family_names = style_map_family_names if style_map_family_names is not None else []
 
     def __copy__(self) -> SfdLanguageNames:
         return SfdLanguageNames(
             self.language,
             self.names,
+            self.style_map_family_names,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdLanguageNames:
@@ -30,15 +35,23 @@ class SfdLanguageNames:
         memo[id(self)] = copied
         copied.language = deepcopy(self.language, memo)
         copied.names = deepcopy(self.names, memo)
+        copied.style_map_family_names = deepcopy(self.style_map_family_names, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SfdLanguageNames):
             return NotImplemented
-        return self.language == other.language and self.names == other.names
+        return (
+            self.language == other.language
+            and self.names == other.names
+            and self.style_map_family_names == other.style_map_family_names
+        )
 
     def __repr__(self) -> str:
-        return f'SfdLanguageNames(language={self.language!r}, names={self.names!r})'
+        return (
+            f'SfdLanguageNames(language={self.language!r}, names={self.names!r}, '
+            f'style_map_family_names={self.style_map_family_names!r})'
+        )
 
     def copy(self) -> SfdLanguageNames:
         return copy(self)

@@ -162,6 +162,8 @@ def _dump_body(font, *, cid_child: bool = False) -> bytes:
     if meta.font_log is not None:
         line('FontLog:', quote(meta.font_log))
     for names in meta.language_names:
+        for family_name in names.style_map_family_names:
+            result.append(records([family_name.to_record()]))
         line('LangName:', b' '.join([str(names.language).encode(), *(quote(name) for name in names.names)]))
     if font.version in ('1.0', '2.0'):
         if len(font.layer_infos) != 2 or len({info.quadratic for info in font.layer_infos}) != 1:
