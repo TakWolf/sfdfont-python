@@ -275,6 +275,32 @@ activation intervals and counter-mask bytes can be edited.
 
 See `examples/edit_hints.py` for a complete edit of Ambrosia.
 
+### Edit Private dictionaries and ShortTable words
+
+`SfdPrivateDict` contains ordered `SfdPrivateEntry` objects. Keys are ASCII tokens;
+values are bytes containing PostScript source, with significant whitespace retained.
+Decoding removes SFD line continuations before counting value bytes. Duplicate keys
+and empty values retain their position; values are not interpreted or executed.
+
+```python
+from sfdfont import SfdPrivateDict
+
+private = SfdPrivateDict.from_record(private_record)
+private.entries[0].value = b'[-20 0 502 517 750 768]'
+updated_record = private.to_record()
+```
+
+`SfdShortTable` stores a four-character `tag` and ordered `SfdShortTableWord`
+objects. Each word has a `value` in `-32768..65535` and an optional `name` for
+the `cvt ` table. Word values retain their written signed or unsigned form;
+the models do not validate or execute TrueType programs.
+
+Both models use explicit replacement in `font.metadata.records`. Existing values
+and CVT names can be edited after loading. Private key order, table tags and word
+counts remain protected while dependent data is retained. Literal backslash-newline
+sequences cannot be represented in a Private value and are rejected when writing.
+See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
+
 ## Supported formats and boundaries
 
 - SFD versions 1.0, 2.0, 3.0, 3.1 and 3.2, with standard-library-only runtime code.
@@ -328,8 +354,8 @@ See `examples/edit_hints.py` for a complete edit of Ambrosia.
 - SFD 3.1/3.2 undo/redo history is retained in the corresponding layer's `records`,
   with operation boundaries, nested outlines and binary payloads checked. Historical
   points and payloads count toward read limits. Undo operations are not executed.
-- Counted Private dictionary values and ShortTable words are checked; significant
-  whitespace and embedded text in dictionary values are preserved.
+- Counted Private dictionary values and ShortTable words have editable models;
+  significant whitespace, embedded text and optional CVT names are preserved.
 - Known terminated text blocks and ordinary additional records are retained without
   interpreting their semantics. Pickled data and MM PostScript subroutines are
   preserved without execution or unpickling.
@@ -341,7 +367,8 @@ Unsupported structures raise `SfdUnsupportedError`; malformed structures raise
 Writing normalizes whitespace and numeric formatting; it does not promise
 byte-for-byte reproduction. For loaded fonts retaining uninterpreted records or
 payloads, metadata text, glyph advances/flags, bitmap pixels, guidelines, paint
-settings and validated layout/MATH/hint parameters can be edited. Glyph identities, outlines,
+settings, Private values, ShortTable words/names and validated layout/MATH/hint
+parameters can be edited. Glyph identities, outlines,
 layer structure and uninterpreted data remain protected when retained records may
 depend on them. Incompatible edits raise `SfdValidationError` before the destination
 file is opened. Explicitly removing dependent opaque data permits supported geometry

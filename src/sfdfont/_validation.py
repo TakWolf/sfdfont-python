@@ -84,6 +84,7 @@ def validate(font, *, layout: bool = True) -> None:
     from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
     from sfdfont._hints import HINT_KEYS
     from sfdfont._legacy_layout import LEGACY_GLYPH_KEYS
+    from sfdfont._tables import decode_private, decode_short_table
 
     def font_record(record) -> bool:
         return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS | {
@@ -110,6 +111,13 @@ def validate(font, *, layout: bool = True) -> None:
         check(
             version_matches(record.keyword, font.version), f'layout record {record.keyword} conflicts with SFD version'
         )
+        try:
+            if record.keyword == 'BeginPrivate:':
+                decode_private(record)
+            elif record.keyword == 'ShortTable:':
+                decode_short_table(record)
+        except SfdParseError as error:
+            raise SfdValidationError(str(error)) from error
     number(font.encoding_size, 'encoding size', 0)
     number(font.metadata.ascent, 'ascent', 0)
     number(font.metadata.descent, 'descent', 0)

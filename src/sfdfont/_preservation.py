@@ -4,6 +4,7 @@ from sfdfont._layout import LAYOUT_KEYS
 from sfdfont._layout_validation import layout_identity
 from sfdfont._legacy_layout import LEGACY_KEYS, legacy_identity
 from sfdfont._math import GLYPH_MATH_KEYS, math_constant
+from sfdfont._tables import TABLE_KEYS, table_identity
 from sfdfont.error import SfdValidationError
 
 
@@ -11,7 +12,7 @@ def protected_records(items):
     return [
         r
         for r in items
-        if r.keyword not in GLYPH_MATH_KEYS | GLYPH_LAYOUT_KEYS | LAYOUT_KEYS | LEGACY_KEYS | HINT_KEYS
+        if r.keyword not in GLYPH_MATH_KEYS | GLYPH_LAYOUT_KEYS | LAYOUT_KEYS | LEGACY_KEYS | HINT_KEYS | TABLE_KEYS
         and not math_constant(r.keyword)
     ]
 
@@ -23,6 +24,7 @@ def check_preservation(font) -> None:
     opaque = bool(
         protected_records(font.metadata.records)
         or legacy_identity(font.metadata.records)
+        or table_identity(font.metadata.records)
         or font.payloads
         or any(
             protected_records(glyph.records)
@@ -57,6 +59,7 @@ def check_preservation(font) -> None:
         and protected_records(font.metadata.records) == protected_records(original.metadata.records)
         and layout_identity(font) == layout_identity(original)
         and legacy_identity(font.metadata.records) == legacy_identity(original.metadata.records)
+        and table_identity(font.metadata.records) == table_identity(original.metadata.records)
         and len(font.glyphs) == len(original.glyphs)
     )
     if same:
