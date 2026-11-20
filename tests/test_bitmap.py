@@ -29,7 +29,7 @@ def test_strike_samples_and_properties(depth):
     assert strike.properties[1].value == 12
     assert strike.glyphs[0].width == 9
     assert strike.glyphs[0].height == 1
-    assert strike.pixels(strike.glyphs[0]) == [[1] + [0] * 8] if depth == 1 else [list(samples)]
+    assert strike.pixels(strike.glyphs[0]) == ([[1] + [0] * 8] if depth == 1 else [list(samples)])
 
 
 def test_old_bitmap_header_and_same_line_marker():
@@ -41,11 +41,13 @@ def test_old_bitmap_header_and_same_line_marker():
     assert strike.glyphs[0].data == b'\0'
 
 
-def test_bitmap_reference():
-    font = SfdFont.parse(
-        document(b'BitmapFont: 12 8 10 2 1\nBDFChar: 7 65 6 0 0 0 0\nz\nBDFRefChar: 7 7 2 -3 N\nEndBitmapFont\n')
-    )
-    assert font.bitmap_strikes[0].references[0].x == 2
+def test_bitmap_reference_cycle():
+    from sfdfont import SfdParseError
+
+    with pytest.raises(SfdParseError, match='cyclic'):
+        SfdFont.parse(
+            document(b'BitmapFont: 12 8 10 2 1\nBDFChar: 7 65 6 0 0 0 0\nz\nBDFRefChar: 7 7 2 -3 N\nEndBitmapFont\n')
+        )
 
 
 def test_bitmap_payload_budget_before_allocation():

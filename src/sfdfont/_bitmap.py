@@ -17,7 +17,7 @@ def bitmap(reader: Reader, font: SfdFont) -> SfdBitmapStrike:
         reader.pos = saved
     saved = reader.pos
     optional = reader.inline_word()
-    if optional and not optional.endswith(':'):
+    if optional and (not optional.endswith(':') or not reader.data[reader.pos :].split(b'\n', 1)[0].strip()):
         strike.foundry = optional
     else:
         reader.pos = saved

@@ -6,7 +6,7 @@ from typing import BinaryIO
 
 from sfdfont._reader import Reader
 from sfdfont._strings import decode_text, decode_utf7
-from sfdfont.error import SfdLimitError, SfdParseError, SfdUnsupportedError
+from sfdfont.error import SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
 from sfdfont.font import SfdFont
 from sfdfont.glyph import SfdAlternateUnicode, SfdGlyph
 from sfdfont.layer import SfdLayer, SfdLayerInfo
@@ -52,6 +52,12 @@ _UNSUPPORTED = {
     'BeginUndo',
     'BeginRedo',
     'Lookup:',
+    'KernClass:',
+    'VKernClass:',
+    'ChainSub:',
+    'ChainPos:',
+    'ContextSub:',
+    'ContextPos:',
     'KernClass2:',
     'KernClass3:',
     'ContextPos2:',
@@ -303,7 +309,13 @@ def parse_font(stream: bytes | bytearray | BinaryIO, limits: SfdReadLimits | Non
     reader = Reader(stream, limits)
     reader.point_count = 0
     try:
-        return _parse_font(reader)
+        font = _parse_font(reader)
+        try:
+            font.validate()
+        except SfdValidationError as error:
+            reader.fail(str(error))
+        font._snapshot = font.deepcopy()
+        return font
     except SfdParseError as error:
         if error.offset is not None:
             raise

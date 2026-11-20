@@ -23,6 +23,7 @@ class SfdFont:
     payloads: list[SfdPayload]
     guidelines: list[SfdContour]
     grid_quadratic: bool
+    _snapshot: SfdFont | None
 
     def __init__(
         self,
@@ -35,6 +36,7 @@ class SfdFont:
         payloads: list[SfdPayload] | None = None,
         guidelines: list[SfdContour] | None = None,
         grid_quadratic: bool = False,
+        _snapshot: SfdFont | None = None,
     ) -> None:
         self.version = version
         self.metadata = metadata if metadata is not None else SfdMetadata()
@@ -47,6 +49,7 @@ class SfdFont:
         self.payloads = payloads if payloads is not None else []
         self.guidelines = guidelines if guidelines is not None else []
         self.grid_quadratic = grid_quadratic
+        self._snapshot = _snapshot
 
     def __copy__(self) -> SfdFont:
         return SfdFont(
@@ -59,6 +62,7 @@ class SfdFont:
             self.payloads,
             self.guidelines,
             self.grid_quadratic,
+            self._snapshot,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdFont:
@@ -73,6 +77,7 @@ class SfdFont:
         copied.payloads = deepcopy(self.payloads, memo)
         copied.guidelines = deepcopy(self.guidelines, memo)
         copied.grid_quadratic = deepcopy(self.grid_quadratic, memo)
+        copied._snapshot = deepcopy(self._snapshot, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -130,6 +135,31 @@ class SfdFont:
 
     def find_glyphs_by_name(self, name: str) -> list[SfdGlyph]:
         return [glyph for glyph in self.glyphs if glyph.name == name]
+
+    def validate(self) -> None:
+        from sfdfont._validation import validate
+
+        validate(self)
+
+    def dump_to_bytes(self) -> bytes:
+        from sfdfont._writer import dump_font
+
+        return dump_font(self)
+
+    def dump(self, stream: BinaryIO) -> None:
+        data = self.dump_to_bytes()
+        position = 0
+        while position < len(data):
+            written = stream.write(data[position:])
+            if written is None or written <= 0 or written > len(data) - position:
+                raise OSError('binary stream made no write progress')
+            position += written
+
+    def save(self, file_path: str | PathLike[str]) -> None:
+        # Complete validation/serialization before opening the destination.
+        data = self.dump_to_bytes()
+        with open(file_path, 'wb') as stream:
+            stream.write(data)
 
     def copy(self) -> SfdFont:
         return copy(self)

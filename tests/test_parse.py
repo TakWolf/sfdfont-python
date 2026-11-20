@@ -64,7 +64,11 @@ Fore
 0 0 m 1
 100 0 l 0x80
 EndSplineSet
-Ref: 65 N 1 0 0 1 0 0
+Ref: 66 N 1 0 0 1 0 0
+EndChar
+StartChar: B
+Encoding: 66 66
+Width: 500
 EndChar
 EndChars
 EndSplineFont
