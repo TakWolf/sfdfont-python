@@ -23,6 +23,14 @@ CONTEXT_KEYS = {
     'ChainSub2:',
     'ReverseChain2:',
 }
+KERN_CLASS_KEYS = {
+    'KernClass:',
+    'VKernClass:',
+    'KernClass2:',
+    'VKernClass2:',
+    'KernClass3:',
+    'VKernClass3:',
+}
 
 
 class LayoutReader:
@@ -90,6 +98,35 @@ class LayoutReader:
                 self.reader.fail('incomplete layout tag')
         if self.reader.char() != b"'":
             self.reader.fail('layout tag must contain exactly four bytes')
+
+    def device_table(self) -> None:
+        if self.peek() != b'{':
+            return
+        self.expect(b'{')
+        if self.peek() == b'}':
+            self.expect(b'}')
+            return
+        first = self.integer()
+        self.expect(b'-')
+        last = self.integer(minimum=first)
+        for _ in range(last - first + 1):
+            if self.peek() == b',':
+                self.expect(b',')
+            self.integer(minimum=-128, maximum=127)
+        self.expect(b'}')
+
+    def kern_class_entry(self) -> None:
+        self.integer(maximum=0x7FFFFFFF)
+        for _ in range(2):
+            while self.reader.data[self.reader.pos : self.reader.pos + 1] in (b' ', b'\t'):
+                self.reader.pos += 1
+            if self.reader.data[self.reader.pos : self.reader.pos + 1] != b'"':
+                break
+            self.quoted()
+        while self.reader.data[self.reader.pos : self.reader.pos + 1] in (b' ', b'\t'):
+            self.reader.pos += 1
+        if self.reader.data[self.reader.pos : self.reader.pos + 1] not in (b'\r', b'\n', b''):
+            self.reader.fail('unexpected data in kerning class entry')
 
 
 def context_record(reader: Reader, key: str) -> SfdRecord:
@@ -181,4 +218,35 @@ def table_order_record(reader: Reader, key: str) -> SfdRecord:
             stream.expect(b'>')
         else:
             stream.tag()
+    return SfdRecord(key, reader.data[start : reader.pos].strip())
+
+
+def kern_class_record(reader: Reader, key: str) -> SfdRecord:
+    start = reader.pos
+    stream = LayoutReader(reader)
+    first_count = stream.integer(minimum=1)
+    class_start = 1
+    if stream.peek() == b'+':
+        stream.expect(b'+')
+        class_start = 0
+    second_count = stream.integer(minimum=1)
+    if key in ('KernClass:', 'VKernClass:'):
+        stream.integer()
+        stream.integer()
+    else:
+        stream.quoted()
+    cells = first_count * second_count
+    if cells > reader.limits.max_bytes:
+        reader.fail('kerning matrix exceeds max_bytes', SfdLimitError)
+    version3 = key.endswith('3:')
+    for _ in range(first_count - class_start + second_count - 1):
+        if version3:
+            stream.kern_class_entry()
+        else:
+            stream.counted_text()
+    for _ in range(cells):
+        if version3:
+            stream.integer(maximum=0x7FFFFFFF)
+        stream.integer(minimum=-32768, maximum=32767)
+        stream.device_table()
     return SfdRecord(key, reader.data[start : reader.pos].strip())

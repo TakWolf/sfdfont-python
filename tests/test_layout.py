@@ -59,3 +59,50 @@ def test_dejavu_context_records_retained(assets_dir):
     assert context.value.startswith(b"class 0 0 'ccmp'")
     assert context.value.count(b'SeqLookup:') == 2
     assert context.value.endswith(b'EndFPST')
+
+
+@pytest.mark.parametrize(
+    ('key', 'header', 'classes', 'matrix'),
+    [
+        ('KernClass:', b'2 2 0 0\n', b'1 A\n1 V\n', b'0 0 0 -80'),
+        ('VKernClass:', b'2 2 0 0\n', b'1 A\n1 V\n', b'0 0 0 -80'),
+        ('KernClass2:', b'2+ 2 "kern"\n', b'0\n1 A\n1 V\n', b'0 0 0 -80 {12-13 1,-1}'),
+        ('VKernClass2:', b'2 2 "kern"\n', b'1 A\n1 V\n', b'0 0 0 -80 {}'),
+        ('KernClass3:', b'2+ 2 "kern"\n', b'0 "" ""\n1 "left" "A"\n0 "right" "V"\n', b'0 0 0 0 0 0 1 -80 {12-13 1,-1}'),
+        ('VKernClass3:', b'2 2 "kern"\n', b'0\n0\n', b'0 0 0 0 0 0 0 -80'),
+    ],
+)
+def test_kerning_class_boundaries(key, header, classes, matrix):
+    reader = Reader(header + classes + matrix + b'\nNext: value\n')
+    parsed = record(reader, key)
+    assert parsed.value == (header + classes + matrix).strip()
+    assert reader.word() == 'Next:'
+
+
+@pytest.mark.parametrize(
+    'body',
+    [
+        b'0 1 0 0\n',
+        b'2 2 0 0\n-1 A\n',
+        b'2 2 0 0\n999 A\n',
+        b'1 1 0 0\n',
+        b'1 1 0 0\n-80 {14-12 0}\n',
+        b'1 1 0 0\n-80 {12-13 1}\n',
+    ],
+)
+def test_malformed_kerning_classes(body):
+    with pytest.raises(SfdParseError):
+        record(Reader(body), 'KernClass:')
+
+
+def test_kerning_matrix_budget():
+    with pytest.raises(SfdLimitError):
+        record(Reader(b'100 100 0 0\n', SfdReadLimits(max_bytes=100)), 'KernClass:')
+
+
+def test_horizontal_and_vertical_classes_retained(assets_dir):
+    font = SfdFont.load(assets_dir.joinpath('fontforge', 'VKern.sfd'))
+    classes = {item.keyword: item for item in font.metadata.records if item.keyword in ('KernClass:', 'VKernClass:')}
+    assert classes['KernClass:'].value.startswith(b'4 4 0 0')
+    assert b'-200 -146' in classes['KernClass:'].value
+    assert classes['VKernClass:'].value.startswith(b'3 3 0 0')

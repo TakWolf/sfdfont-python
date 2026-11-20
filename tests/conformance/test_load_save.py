@@ -27,6 +27,7 @@ from sfdfont import SfdFont
         ('fontforge', 'QuadraticConversionBug.sfd'),
         ('fontforge', 'SplineOverlapBug1.sfd'),
         ('fontforge', 'StrokeTests.sfd'),
+        ('fontforge', 'VKern.sfd'),
     ],
 )
 def test_load_save(
