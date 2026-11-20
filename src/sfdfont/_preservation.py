@@ -1,4 +1,5 @@
 from sfdfont._extended import EXTENDED_KEYS
+from sfdfont._font_info import INFO_KEYS
 from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
 from sfdfont._hints import HINT_KEYS, hint_identity
 from sfdfont._layout import LAYOUT_KEYS
@@ -10,7 +11,16 @@ from sfdfont.error import SfdValidationError
 
 
 def protected_records(items):
-    editable = GLYPH_MATH_KEYS | GLYPH_LAYOUT_KEYS | LAYOUT_KEYS | LEGACY_KEYS | HINT_KEYS | TABLE_KEYS | EXTENDED_KEYS
+    editable = (
+        GLYPH_MATH_KEYS
+        | GLYPH_LAYOUT_KEYS
+        | LAYOUT_KEYS
+        | LEGACY_KEYS
+        | HINT_KEYS
+        | TABLE_KEYS
+        | EXTENDED_KEYS
+        | INFO_KEYS
+    )
     return [r for r in items if r.keyword not in editable and not math_constant(r.keyword)]
 
 

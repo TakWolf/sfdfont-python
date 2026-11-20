@@ -220,6 +220,25 @@ preserved without repair or promotion to modern lookups.
 
 See `examples/edit_legacy_layout.py` for a complete edit of the original VKern font.
 
+### Edit font information
+
+`SfdGaspTable` contains a `version` and ordered `SfdGaspRange(ppem, flags)` entries.
+Each ppem value is an inclusive upper limit; limits must strictly increase.
+Unknown flag bits are retained. Empty tables and lists without a final `65535`
+limit are preserved without adding ranges.
+
+```python
+from sfdfont import SfdGaspRange, SfdGaspTable
+
+gasp = SfdGaspTable([SfdGaspRange(8, 2), SfdGaspRange(65535, 3)], version=0)
+gasp_record = gasp.to_record()
+```
+
+Use `from_record()` / `to_record()` and replace the entry in
+`font.metadata.records` when editing. The library checks counts and integer bounds;
+it does not render glyphs or apply the grid-fitting flags.
+See `examples/create_font_info.py` for a complete example.
+
 ### Edit baselines
 
 `SfdBaselines` reads and writes `BaseHoriz:` / `BaseVert:` records. Its `tags`
@@ -376,6 +395,7 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
 
 - SFD versions 1.0, 2.0, 3.0, 3.1 and 3.2, with standard-library-only runtime code.
 - Font names, language names, comments, SFD UTF-7, UTF-8 and legacy text fields.
+- Editable GaspTable ranges and versions, with count, ppem order and integer checks.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.

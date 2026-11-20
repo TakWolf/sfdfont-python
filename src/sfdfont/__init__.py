@@ -6,6 +6,7 @@ from sfdfont.bitmap import SfdBitmapGlyph, SfdBitmapProperty, SfdBitmapReference
 from sfdfont.cid import SfdCidInfo
 from sfdfont.error import SfdError, SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
 from sfdfont.font import SfdFont
+from sfdfont.gasp import SfdGaspRange, SfdGaspTable
 from sfdfont.glyph import SfdAlternateUnicode, SfdGlyph
 from sfdfont.glyph_layout import (
     SfdAnchor,
@@ -66,6 +67,8 @@ from sfdfont.tables import SfdPrivateDict, SfdPrivateEntry, SfdShortTable, SfdSh
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdGaspRange',
+    'SfdGaspTable',
     'SfdMacSetting',
     'SfdMacFeature',
     'SfdMacFeatures',

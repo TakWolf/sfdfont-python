@@ -121,6 +121,10 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    from sfdfont._font_info import INFO_KEYS, info_record
+
+    if key in INFO_KEYS:
+        return info_record(reader, key)
     if key in ('HStem:', 'VStem:', 'DStem:', 'DStem2:', 'CounterMasks:', 'MinimumDistance:'):
         from sfdfont._hints import hint_record
 

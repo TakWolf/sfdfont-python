@@ -81,13 +81,14 @@ def contours(items) -> None:
 
 def validate(font, *, layout: bool = True) -> None:
     from sfdfont._extended import EXTENDED_KEYS
+    from sfdfont._font_info import INFO_KEYS, validate_info
     from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
     from sfdfont._hints import HINT_KEYS
     from sfdfont._legacy_layout import LEGACY_GLYPH_KEYS
     from sfdfont._tables import decode_private, decode_short_table
 
     def font_record(record) -> bool:
-        return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS | {
+        return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS | INFO_KEYS | {
             'BeginPrivate:',
             'ShortTable:',
             'TtTable:',
@@ -102,6 +103,7 @@ def validate(font, *, layout: bool = True) -> None:
 
         validate_mm(font)
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
+    validate_info(font.metadata.records)
     for record in font.metadata.records:
         check(
             record.keyword not in GLYPH_LAYOUT_KEYS | LEGACY_GLYPH_KEYS | HINT_KEYS,
