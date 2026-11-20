@@ -1,0 +1,181 @@
+import re
+
+from sfdfont._layout import CONTEXT_KEYS, KERN_CLASS_KEYS, LayoutReader
+from sfdfont._reader import Reader
+from sfdfont._strings import decode_text
+from sfdfont.error import SfdParseError, SfdValidationError
+from sfdfont.layout import SfdContext, SfdKerningClass, SfdLookup
+
+
+def need(condition: bool, message: str) -> None:
+    if not condition:
+        raise SfdValidationError(message)
+
+
+def glyph_records(font):
+    for glyph in font.glyphs:
+        yield from glyph.records
+        for layer in glyph.layers:
+            yield from layer.records
+
+
+def validate_layout(font) -> None:
+    from sfdfont._validation import cycles
+
+    try:
+        lookups = [SfdLookup.from_record(r) for r in font.metadata.records if r.keyword == 'Lookup:']
+        contexts = [SfdContext.from_record(r) for r in font.metadata.records if r.keyword in CONTEXT_KEYS]
+        kerns = [SfdKerningClass.from_record(r) for r in font.metadata.records if r.keyword in KERN_CLASS_KEYS]
+        lookup_names = {}
+        subtables = {}
+        for lookup in lookups:
+            need(lookup.name not in lookup_names, f'duplicate lookup name {lookup.name!r}')
+            lookup_names[lookup.name] = lookup
+            for sub in lookup.subtables:
+                need(sub.name not in subtables, f'duplicate subtable name {sub.name!r}')
+                subtables[sub.name] = lookup
+        names = {glyph.name for glyph in font.glyphs}
+
+        def members(values):
+            for value in values:
+                if isinstance(value, list):
+                    yield from value
+                elif isinstance(value, str):
+                    yield value
+
+        def check_names(values):
+            for name in members(values):
+                need(name in names, f'unknown glyph {name!r} in layout')
+
+        definitions = {c.tag for c in contexts if c.tag is not None}
+        old_pst = {'Substitution:', 'MultipleSubs:', 'AlternateSubs:', 'Ligature:', 'Position:', 'PairPos:'}
+        for record in font.metadata.records:
+            if record.keyword == 'GenTags:':
+                definitions.update(tag.decode('ascii') for tag in re.findall(rb"'(.{4})'", record.value))
+        for record in glyph_records(font):
+            if record.keyword in old_pst:
+                match = re.search(rb"'(.{4})'", record.value)
+                if match:
+                    definitions.add(match[1].decode('ascii'))
+        graph = {name: [] for name in lookup_names}
+        used = set()
+
+        def subtable(name, kinds):
+            need(name in subtables, f'undefined layout subtable {name!r}')
+            owner = subtables[name]
+            need(owner.lookup_type in kinds, f'lookup type mismatch for subtable {name!r}')
+            return owner
+
+        kinds = {'ContextSub2:': 5, 'ChainSub2:': 6, 'ReverseChain2:': 8, 'ContextPos2:': 263, 'ChainPos2:': 264}
+        for context in contexts:
+            for group in (context.input_classes, context.backtrack_classes, context.lookahead_classes):
+                check_names(group)
+            if context.subtable is not None:
+                owner = subtable(context.subtable, {kinds[context.keyword]})
+                need(context.subtable not in used, 'multiple layout blocks for one subtable')
+                used.add(context.subtable)
+                source = owner.name
+            else:
+                source = context.tag
+            for rule in context.rules:
+                for group in (rule.inputs, rule.backtrack, rule.lookahead):
+                    check_names(group)
+                check_names(rule.replacements or [])
+                if context.form == 'revcov':
+                    need(
+                        bool(rule.inputs) and len(rule.inputs[0]) == len(rule.replacements or []),
+                        'reverse substitution coverage/replacement count mismatch',
+                    )
+                for action in rule.lookups:
+                    if action.lookup is None:
+                        continue
+                    if context.subtable is not None:
+                        need(action.lookup in lookup_names, f'undefined nested lookup {action.lookup!r}')
+                        target = lookup_names[action.lookup]
+                        need(
+                            (target.lookup_type < 256) == (owner.lookup_type < 256),
+                            'cannot mix GSUB and GPOS nested lookups',
+                        )
+                    else:
+                        need(action.lookup in definitions, f'undefined nested lookup tag {action.lookup!r}')
+                    if source is not None:
+                        graph.setdefault(source, []).append(action.lookup)
+        cycles(graph, 'layout')
+        for kern in kerns:
+            check_names(kern.first_classes)
+            check_names(kern.second_classes)
+            if kern.subtable is not None:
+                owner = subtable(kern.subtable, {258})
+                need(kern.subtable not in used, 'multiple layout blocks for one subtable')
+                used.add(kern.subtable)
+                definition = next(sub for sub in owner.subtables if sub.name == kern.subtable)
+                need(bool(definition.vertical) == kern.keyword.startswith('V'), 'kerning direction mismatch')
+        modern_pst = {
+            'Substitution2:': 1,
+            'MultipleSubs2:': 2,
+            'AlternateSubs2:': 3,
+            'Ligature2:': 4,
+            'Position2:': 257,
+            'PairPos2:': 258,
+        }
+        gids = {glyph.glyph_id for glyph in font.glyphs}
+        anchors = set()
+        for record in font.metadata.records:
+            if record.keyword == 'AnchorClass2:':
+                stream = LayoutReader(Reader(record.value))
+                while stream.peek():
+                    name = stream.quoted()
+                    target = stream.quoted() if stream.peek() == b'"' else ''
+                    if target:
+                        subtable(target, {259, 260, 261, 262})
+                    need(name not in anchors, 'duplicate anchor class name')
+                    anchors.add(name)
+                    if stream.peek() not in (b'"', b''):
+                        stream.integer()
+            elif record.keyword == 'AnchorClass:':
+                from sfdfont._strings import decode_utf7
+
+                anchors.update(decode_utf7(value) for value in re.findall(rb'"([^"]*)"', record.value))
+        for record in glyph_records(font):
+            if record.keyword in modern_pst:
+                stream = LayoutReader(Reader(record.value))
+                subtable(stream.quoted(), {modern_pst[record.keyword]})
+                rest = decode_text(stream.reader.line()).split()
+                if record.keyword in ('Substitution2:', 'MultipleSubs2:', 'AlternateSubs2:', 'Ligature2:'):
+                    check_names(rest)
+                elif record.keyword == 'PairPos2:':
+                    need(bool(rest), 'pair positioning needs a target glyph')
+                    check_names(rest[:1])
+            elif record.keyword in ('Kerns2:', 'VKerns2:'):
+                stream = LayoutReader(Reader(record.value))
+                while stream.peek():
+                    need(stream.integer(maximum=0x7FFFFFFF) in gids, 'dangling kerning glyph ID')
+                    stream.integer(-32768, 32767)
+                    owner = subtable(stream.quoted(), {258})
+                    need(
+                        any(bool(sub.vertical) == record.keyword.startswith('V') for sub in owner.subtables),
+                        'kerning pair direction mismatch',
+                    )
+                    stream.device_table()
+            elif record.keyword == 'AnchorPoint:':
+                stream = LayoutReader(Reader(record.value))
+                name = stream.quoted()
+                need(name in anchors, f'undefined anchor class {name!r}')
+    except (SfdParseError, UnicodeError) as error:
+        raise SfdValidationError(str(error)) from error
+
+
+def layout_identity(font):
+    """Names remain fixed while references in uninterpreted records are retained."""
+    result = []
+    for record in font.metadata.records:
+        if record.keyword == 'Lookup:':
+            lookup = SfdLookup.from_record(record)
+            result.append(('Lookup:', lookup.name, tuple(sub.name for sub in lookup.subtables)))
+        elif record.keyword in CONTEXT_KEYS:
+            context = SfdContext.from_record(record)
+            result.append((record.keyword, context.subtable, context.tag, context.script_language_index))
+        elif record.keyword in KERN_CLASS_KEYS:
+            kern = SfdKerningClass.from_record(record)
+            result.append((record.keyword, kern.subtable, kern.script_language_index))
+    return result

@@ -7,6 +7,7 @@ from typing import Any, BinaryIO
 from sfdfont.bitmap import SfdBitmapStrike
 from sfdfont.glyph import SfdGlyph
 from sfdfont.layer import SfdLayerInfo
+from sfdfont.layout import SfdLookup
 from sfdfont.limits import SfdReadLimits
 from sfdfont.metadata import SfdMetadata
 from sfdfont.outline import SfdContour
@@ -149,6 +150,24 @@ class SfdFont:
             target = self.encoding_aliases[encoding]
             return next((glyph for glyph in self.glyphs if glyph.glyph_id == target), None)
         return next((glyph for glyph in self.glyphs if glyph.encoding == encoding and encoding != -1), None)
+
+    def find_lookup(self, name: str) -> SfdLookup | None:
+        """Decode an independent lookup value; use set_lookup() to apply edits."""
+        for record in self.metadata.records:
+            if record.keyword == 'Lookup:':
+                lookup = SfdLookup.from_record(record)
+                if lookup.name == name:
+                    return lookup
+        return None
+
+    def set_lookup(self, lookup: SfdLookup) -> None:
+        """Replace the named lookup or append a new definition, preserving other records."""
+        replacement = lookup.to_record()
+        for index, record in enumerate(self.metadata.records):
+            if record.keyword == 'Lookup:' and SfdLookup.from_record(record).name == lookup.name:
+                self.metadata.records[index] = replacement
+                return
+        self.metadata.records.append(replacement)
 
     def validate(self) -> None:
         from sfdfont._validation import validate

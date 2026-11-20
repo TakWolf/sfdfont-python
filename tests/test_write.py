@@ -74,6 +74,7 @@ def test_opaque_records_preserved_and_edits_rejected(assets_dir):
     font = SfdFont.load(assets_dir.joinpath('fontforge', 'BoxesAndBounds.sfd'))
     assert font.metadata.records
     font.glyphs[0].width += 1
+    font.glyphs[0].layers[0].contours[0].points[0].x += 1
     with pytest.raises(SfdValidationError, match='uninterpreted'):
         font.dump_to_bytes()
     font.metadata.records.clear()

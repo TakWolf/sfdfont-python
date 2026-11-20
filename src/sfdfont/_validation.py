@@ -159,3 +159,6 @@ def validate(font) -> None:
             check(ref.source in seen and ref.target in seen, 'dangling bitmap reference')
             graph[ref.source].append(ref.target)
         cycles(graph, 'bitmap')
+    from sfdfont._layout_validation import validate_layout
+
+    validate_layout(font)

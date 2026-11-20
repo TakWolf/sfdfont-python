@@ -4,6 +4,7 @@ import re
 
 from sfdfont._binary import payload
 from sfdfont._parser import record
+from sfdfont._preservation import check_preservation
 from sfdfont._reader import Reader, encode_ascii85
 from sfdfont._strings import quote
 from sfdfont.error import SfdParseError, SfdValidationError
@@ -93,21 +94,9 @@ def splines(contours) -> bytes:
     return b''.join([*result, b'EndSplineSet\n'])
 
 
-def has_opaque(font) -> bool:
-    return bool(
-        font.metadata.records
-        or font.payloads
-        or any(
-            glyph.records or glyph.payloads or any(layer.records or layer.images for layer in glyph.layers)
-            for glyph in font.glyphs
-        )
-    )
-
-
 def dump_font(font) -> bytes:
     font.validate()
-    if font._snapshot is not None and has_opaque(font) and font != font._snapshot:
-        raise SfdValidationError('cannot edit a loaded font while uninterpreted records or payloads are retained')
+    check_preservation(font)
     result: list[bytes] = []
 
     def line(key: str, value: bytes = b'') -> None:
