@@ -1,3 +1,4 @@
+from sfdfont._baselines import BASE_KEYS
 from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
 from sfdfont._hints import HINT_KEYS, hint_identity
 from sfdfont._layout import LAYOUT_KEYS
@@ -12,7 +13,8 @@ def protected_records(items):
     return [
         r
         for r in items
-        if r.keyword not in GLYPH_MATH_KEYS | GLYPH_LAYOUT_KEYS | LAYOUT_KEYS | LEGACY_KEYS | HINT_KEYS | TABLE_KEYS
+        if r.keyword
+        not in GLYPH_MATH_KEYS | GLYPH_LAYOUT_KEYS | LAYOUT_KEYS | LEGACY_KEYS | HINT_KEYS | TABLE_KEYS | BASE_KEYS
         and not math_constant(r.keyword)
     ]
 

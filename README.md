@@ -220,6 +220,28 @@ preserved without repair or promotion to modern lookups.
 
 See `examples/edit_legacy_layout.py` for a complete edit of the original VKern font.
 
+### Edit baselines
+
+`SfdBaselines` reads and writes `BaseHoriz:` / `BaseVert:` records. Its `tags`
+list defines the order of each `SfdBaselineScript.positions` list;
+`default_baseline` selects an index in that list.
+
+```python
+from sfdfont import SfdBaselines
+
+baselines = SfdBaselines.from_record(baseline_record)
+baselines.scripts[0].positions[0] += 10
+updated_record = baselines.to_record()
+```
+
+Replace the original entry in `font.metadata.records` to apply the change.
+`SfdBaselineExtent` stores optional language/feature tags and descent/ascent
+ranges. Extents form an ordered list: depth 0 starts a language range, depth 1
+starts a feature range inside it; larger depths retain further nesting.
+While opaque dependencies are retained, tags, script order and extent hierarchy
+remain protected; coordinates, ranges and the default baseline can be edited.
+See `examples/create_baselines.py` for a complete example.
+
 ### Edit MATH data
 
 MATH constants and glyph metrics use `SfdMathValue`; assemblies use
@@ -335,8 +357,9 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
   carets and anchors also have editable models. Separate legacy models retain
   SFD 1.0 bindings and permit numeric layout edits. Lookup ownership, glyph references and dependency cycles
   are checked. Shaping is outside the scope of the library.
-- BASE baselines and language extents, JSTF justification and Mac feature names
-  are structurally checked and retained as records. Editable MATH models cover
+- BASE baselines and language/feature extents have editable models. JSTF
+  justification and Mac feature names are structurally checked and retained as
+  records. Editable MATH models cover
   constants, italic/accent corrections, size variants, glyph assemblies and all
   four corner-kern tables, with device adjustments and glyph dependency checks.
 - Type 3 fonts through `font.multilayer`, per-glyph `layer_count` and `layer.paint`.

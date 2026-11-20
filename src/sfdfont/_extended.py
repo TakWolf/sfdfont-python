@@ -21,45 +21,9 @@ def finish(stream: LayoutReader) -> None:
 
 
 def base_record(reader: Reader, key: str) -> SfdRecord:
-    start = reader.pos
-    stream = LayoutReader(Reader(reader.line(), reader.limits))
-    count = stream.integer()
-    tags = [stream.tag() for _ in range(count)]
-    if len(set(tags)) != len(tags):
-        reader.fail('duplicate baseline tag')
-    finish(stream)
-    scripts = set()
-    while True:
-        saved = reader.pos
-        if reader.word() != 'BaseScript:':
-            reader.pos = saved
-            break
-        stream = LayoutReader(Reader(reader.line(), reader.limits))
-        tag = stream.tag()
-        if tag in scripts:
-            reader.fail('duplicate baseline script')
-        scripts.add(tag)
-        stream.integer(maximum=max(0, count - 1))
-        for _ in range(count):
-            stream.integer(-32768, 32767)
-        # Parse language/feature extents iteratively to avoid recursive input.
-        depth = 0
-        while stream.peek():
-            if stream.peek() == b'{':
-                stream.expect(b'{')
-                depth += 1
-                if stream.peek() == b"'":
-                    stream.tag()
-                stream.integer(-32768, 32767)
-                stream.integer(-32768, 32767)
-            elif stream.peek() == b'}' and depth:
-                stream.expect(b'}')
-                depth -= 1
-            else:
-                reader.fail('invalid baseline language extent')
-        if depth:
-            reader.fail('unclosed baseline language extent')
-    return SfdRecord(key, reader.data[start : reader.pos].strip())
+    from sfdfont._baselines import baseline_record
+
+    return baseline_record(reader, key)
 
 
 def read_justify(reader: Reader):
