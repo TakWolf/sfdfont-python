@@ -285,7 +285,7 @@ def spline_set(reader: Reader, *, legacy: bool = False) -> list[SfdContour]:
             coords[-1],
             command,
             tuple(coords[:-2]),
-            int(flags),
+            integer(flags),
             bytes.fromhex(mask.decode()) if mask else None,
             integer(ttf) if ttf else None,
             integer(cp) if cp else None,
@@ -386,7 +386,7 @@ def glyph(reader: Reader, font: SfdFont, *, cid_child: bool = False) -> SfdGlyph
                 if key == 'AltUni:':
                     result.alternate_unicodes.append(SfdAlternateUnicode(integer(item)))
                 else:
-                    if not re.fullmatch(rb'[0-9a-fA-F]+\.[0-9a-fA-F]+\.[0-9a-fA-F]+', item):
+                    if not re.fullmatch(rb'[0-9a-fA-F]{1,16}\.[0-9a-fA-F]{1,16}\.[0-9a-fA-F]{1,16}', item):
                         reader.fail('invalid AltUni2 entry')
                     uni, vs, fid = (int(part, 16) for part in item.split(b'.'))
                     result.alternate_unicodes.append(SfdAlternateUnicode(uni, -1 if vs == 0xFFFFFFFF else vs, fid))
