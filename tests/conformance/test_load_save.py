@@ -21,6 +21,7 @@ from sfdfont import SfdFont
         ('fontforge', 'DirectionTest.sfd'),
         ('fontforge', 'Hinting.sfd'),
         ('fontforge', 'ItalicHand.sfd'),
+        ('fontforge', 'NimbusLGCUni-Regular.sfd'),
         ('fontforge', 'NumberPoints.sfd'),
         ('fontforge', 'OverlapBugs.sfd'),
         ('fontforge', 'QuadOverlapBugs.sfd'),

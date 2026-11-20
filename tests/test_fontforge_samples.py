@@ -11,7 +11,6 @@ from sfdfont import SfdFont, SfdParseError, SfdUnsupportedError
         ('CaslonMM.sfd', SfdUnsupportedError, 'MMCounts:'),
         ('DataURI.sfd', SfdUnsupportedError, 'MultiLayer:'),
         ('FormalScript.sfd', SfdParseError, 'duplicate glyph ID'),
-        ('NimbusLGCUni-Regular.sfd', SfdUnsupportedError, 'DupEnc:'),
         ('OmittedCharBugs.sfd', SfdParseError, 'dangling glyph reference'),
         ('SFDBitmapParsing.sfd', SfdParseError, 'BeginChars count'),
         ('SimplifyBugs.sfd', SfdParseError, 'duplicate glyph ID'),

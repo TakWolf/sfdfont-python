@@ -43,6 +43,7 @@ def records(items) -> bytes:
         'FontLog:',
         'LangName:',
         'Order2:',
+        'DupEnc:',
     }
     for item in items:
         if item.keyword in forbidden or not isinstance(item.value, bytes):
@@ -256,5 +257,7 @@ def dump_font(font) -> bytes:
         for ref in strike.references:
             line('BDFRefChar:', f'{ref.source} {ref.target} {ref.x} {ref.y} {"S" if ref.selected else "N"}'.encode())
         line('EndBitmapFont')
+    for encoding, target in font.encoding_aliases.items():
+        line('DupEnc:', f'{encoding} {target}'.encode())
     line('EndSplineFont')
     return b''.join(result)

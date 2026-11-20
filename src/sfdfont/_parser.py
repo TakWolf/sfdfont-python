@@ -98,7 +98,7 @@ def record(reader: Reader, key: str) -> SfdRecord:
         return table_order_record(reader, key)
     if key in KERN_CLASS_KEYS:
         return kern_class_record(reader, key)
-    if key in ('StartChar:', 'BeginChars:', 'BitmapFont:', 'BDFChar:', 'BDFRefChar:'):
+    if key in ('StartChar:', 'BeginChars:', 'BitmapFont:', 'BDFChar:', 'BDFRefChar:', 'DupEnc:'):
         reader.fail(f'misplaced structural record {key}')
     if key in ('PickledData:', 'PickledDataWithLists:'):
         start = reader.pos
@@ -376,6 +376,14 @@ def _parse_font(reader: Reader) -> SfdFont:
             from sfdfont._bitmap import bitmap
 
             font.bitmap_strikes.append(bitmap(reader, font))
+        elif key == 'DupEnc:' and seen_chars:
+            values = reader.line().split()
+            if len(values) != 2:
+                reader.fail('DupEnc requires an encoding slot and glyph ID')
+            encoding, target = (integer(value) for value in values)
+            if encoding in font.encoding_aliases:
+                reader.fail(f'duplicate DupEnc slot {encoding}')
+            font.encoding_aliases[encoding] = target
         elif seen_chars:
             reader.fail(f'unsupported post-glyph record {key}', SfdUnsupportedError)
         elif key == 'TtfTable:':

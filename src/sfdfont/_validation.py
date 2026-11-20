@@ -99,6 +99,13 @@ def validate(font) -> None:
         check(all(index in indices for index in layer_ids), 'undefined glyph layer')
         for layer in glyph.layers:
             contours(layer.contours)
+    for encoding, target in font.encoding_aliases.items():
+        number(encoding, 'alias encoding', 0)
+        number(target, 'alias glyph ID', 0)
+        check(encoding < font.encoding_size, 'alias encoding exceeds encoding size')
+        check(target in gids, f'dangling encoding alias {target}')
+        check(encoding not in encodings or encodings[encoding] == target, f'conflicting alias encoding {encoding}')
+        encodings[encoding] = target
     graph = {}
     for glyph in font.glyphs:
         for layer in glyph.layers:

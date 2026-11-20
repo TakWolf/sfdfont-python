@@ -9,6 +9,7 @@ from sfdfont import SfdContour, SfdFont, SfdGlyph, SfdLayer, SfdMetadata, SfdRea
     ('factory', 'attribute'),
     [
         (SfdFont, 'glyphs'),
+        (SfdFont, 'encoding_aliases'),
         (SfdFont, 'layer_infos'),
         (SfdMetadata, 'records'),
         (SfdGlyph, 'alternate_unicodes'),

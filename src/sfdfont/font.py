@@ -24,6 +24,7 @@ class SfdFont:
     guidelines: list[SfdContour]
     grid_quadratic: bool
     _snapshot: SfdFont | None
+    encoding_aliases: dict[int, int]
 
     def __init__(
         self,
@@ -37,6 +38,7 @@ class SfdFont:
         guidelines: list[SfdContour] | None = None,
         grid_quadratic: bool = False,
         _snapshot: SfdFont | None = None,
+        encoding_aliases: dict[int, int] | None = None,
     ) -> None:
         self.version = version
         self.metadata = metadata if metadata is not None else SfdMetadata()
@@ -50,6 +52,7 @@ class SfdFont:
         self.guidelines = guidelines if guidelines is not None else []
         self.grid_quadratic = grid_quadratic
         self._snapshot = _snapshot
+        self.encoding_aliases = encoding_aliases if encoding_aliases is not None else {}
 
     def __copy__(self) -> SfdFont:
         return SfdFont(
@@ -63,6 +66,7 @@ class SfdFont:
             self.guidelines,
             self.grid_quadratic,
             self._snapshot,
+            self.encoding_aliases,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdFont:
@@ -78,6 +82,7 @@ class SfdFont:
         copied.guidelines = deepcopy(self.guidelines, memo)
         copied.grid_quadratic = deepcopy(self.grid_quadratic, memo)
         copied._snapshot = deepcopy(self._snapshot, memo)
+        copied.encoding_aliases = deepcopy(self.encoding_aliases, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -93,6 +98,7 @@ class SfdFont:
             and self.payloads == other.payloads
             and self.guidelines == other.guidelines
             and self.grid_quadratic == other.grid_quadratic
+            and self.encoding_aliases == other.encoding_aliases
         )
 
     def __repr__(self) -> str:
@@ -106,7 +112,8 @@ class SfdFont:
             f'bitmap_strikes={self.bitmap_strikes!r}, '
             f'payloads={self.payloads!r}, '
             f'guidelines={self.guidelines!r}, '
-            f'grid_quadratic={self.grid_quadratic!r}'
+            f'grid_quadratic={self.grid_quadratic!r}, '
+            f'encoding_aliases={self.encoding_aliases!r}'
             f')'
         )
 
@@ -135,6 +142,13 @@ class SfdFont:
 
     def find_glyphs_by_name(self, name: str) -> list[SfdGlyph]:
         return [glyph for glyph in self.glyphs if glyph.name == name]
+
+    def find_glyph_by_encoding(self, encoding: int) -> SfdGlyph | None:
+        """Find an encoding slot, including DupEnc aliases; slots are not Unicode."""
+        if encoding in self.encoding_aliases:
+            target = self.encoding_aliases[encoding]
+            return next((glyph for glyph in self.glyphs if glyph.glyph_id == target), None)
+        return next((glyph for glyph in self.glyphs if glyph.encoding == encoding and encoding != -1), None)
 
     def validate(self) -> None:
         from sfdfont._validation import validate
