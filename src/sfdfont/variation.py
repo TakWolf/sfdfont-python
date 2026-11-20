@@ -45,6 +45,9 @@ class SfdMacName:
     def copy(self) -> SfdMacName:
         return copy(self)
 
+    def __repr__(self) -> str:
+        return f'SfdMacName(encoding={self.encoding!r}, language={self.language!r}, data={self.data!r})'
+
     def deepcopy(self) -> SfdMacName:
         return deepcopy(self)
 

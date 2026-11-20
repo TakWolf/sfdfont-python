@@ -28,7 +28,20 @@ def mac_name(value: bytes) -> SfdMacName:
         raise SfdParseError('MacName escape exceeds one byte') from error
     if len(data) != integer(match[3]):
         raise SfdParseError('MacName length mismatch')
-    return SfdMacName(integer(match[1]), integer(match[2]), data)
+    encoding, language = integer(match[1]), integer(match[2])
+    if not 0 <= encoding <= 65535 or not 0 <= language <= 65535 or b'\0' in data:
+        raise SfdParseError('invalid MacName encoding, language or NUL byte')
+    return SfdMacName(encoding, language, data)
+
+
+def encode_mac_name(item) -> bytes:
+    from sfdfont._validation import check, number
+
+    number(item.encoding, 'Mac name encoding', 0, 65535)
+    number(item.language, 'Mac name language', 0, 65535)
+    check(isinstance(item.data, bytes) and b'\0' not in item.data, 'invalid Mac name bytes')
+    escaped = b''.join(bytes([v]) if 32 <= v <= 126 and v not in (34, 92) else f'\\{v:03o}'.encode() for v in item.data)
+    return f'{item.encoding} {item.language} {len(item.data)} "'.encode() + escaped + b'"'
 
 
 def parse_mm(reader: Reader, version: str):
@@ -213,10 +226,7 @@ def dump_mm(font) -> bytes:
 
     def names(items):
         for item in items:
-            escaped = b''.join(
-                bytes([v]) if 32 <= v <= 126 and v not in (34, 92) else f'\\{v:03o}'.encode() for v in item.data
-            )
-            line('MacName:', f'{item.encoding} {item.language} {len(item.data)} "'.encode() + escaped + b'"')
+            line('MacName:', encode_mac_name(item))
 
     for index, mapping in enumerate(mm.axis_maps):
         line(

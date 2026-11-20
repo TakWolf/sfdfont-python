@@ -265,6 +265,32 @@ remain protected while opaque dependencies are retained; priorities, actions and
 extender membership can be edited. No justification algorithm is executed.
 See `examples/create_justification.py` for a complete example.
 
+### Edit Mac feature names
+
+`SfdMacFeatures` contains `SfdMacFeature` objects with a feature number, `is_mutex`
+flag, byte-sized `default_setting`, names and `SfdMacSetting` objects. Features
+and settings each require at least one `SfdMacName`; an empty name is allowed.
+
+```python
+from sfdfont import SfdMacFeatures
+
+features = SfdMacFeatures.from_record(mac_feature_record)
+features.features[0].names[0].data = b'Ligatures'
+updated_record = features.to_record()
+```
+
+Replace the entry in `font.metadata.records` to apply changes. `SfdMacName.data`
+contains bytes in its declared Macintosh encoding, not SFD UTF-7. Octal escapes
+retain control bytes, high bytes, quotes and backslashes; NUL is rejected.
+Feature/setting numbers and name encoding/language order remain protected while
+opaque dependencies are retained; name bytes, mutex flags and defaults can be
+edited. Feature defaults may refer to built-in settings outside this name table.
+See `examples/create_mac_features.py` for a complete example.
+
+The library preserves escaped name bytes on roundtrip. FontForge 20251009 drops
+octal-escaped Mac name bytes when importing SFD; names using plain ASCII without
+escapes avoid this FontForge limitation.
+
 ### Edit MATH data
 
 MATH constants and glyph metrics use `SfdMathValue`; assemblies use
@@ -380,9 +406,9 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
   carets and anchors also have editable models. Separate legacy models retain
   SFD 1.0 bindings and permit numeric layout edits. Lookup ownership, glyph references and dependency cycles
   are checked. Shaping is outside the scope of the library.
-- BASE baselines, language/feature extents and JSTF justification have editable
-  models, including extender glyph and lookup dependency checks. Mac feature names
-  are structurally checked and retained as records. Editable MATH models cover
+- BASE baselines, language/feature extents, JSTF justification and Mac feature names
+  have editable models, including extender glyph and lookup dependency checks.
+  Editable MATH models cover
   constants, italic/accent corrections, size variants, glyph assemblies and all
   four corner-kern tables, with device adjustments and glyph dependency checks.
 - Type 3 fonts through `font.multilayer`, per-glyph `layer_count` and `layer.paint`.
@@ -413,7 +439,8 @@ Unsupported structures raise `SfdUnsupportedError`; malformed structures raise
 Writing normalizes whitespace and numeric formatting; it does not promise
 byte-for-byte reproduction. For loaded fonts retaining uninterpreted records or
 payloads, metadata text, glyph advances/flags, bitmap pixels, guidelines, paint
-settings, Private values, ShortTable words/names and validated layout/MATH/hint
+settings, Private values, ShortTable words/names and validated layout/MATH/hint,
+baseline, justification and Mac feature name
 parameters can be edited. Glyph identities, outlines,
 layer structure and uninterpreted data remain protected when retained records may
 depend on them. Incompatible edits raise `SfdValidationError` before the destination

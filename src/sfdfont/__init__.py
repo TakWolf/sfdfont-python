@@ -53,6 +53,7 @@ from sfdfont.legacy_layout import (
     SfdLegacyPst,
 )
 from sfdfont.limits import SfdReadLimits
+from sfdfont.mac_features import SfdMacFeature, SfdMacFeatures, SfdMacSetting
 from sfdfont.marks import SfdMarkClasses, SfdMarkGroup, SfdMarkSets
 from sfdfont.math import SfdGlyphAssembly, SfdGlyphPart, SfdGlyphVariants, SfdMathKern, SfdMathKernEntry, SfdMathValue
 from sfdfont.metadata import SfdLanguageNames, SfdMetadata
@@ -65,6 +66,9 @@ from sfdfont.tables import SfdPrivateDict, SfdPrivateEntry, SfdShortTable, SfdSh
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdMacSetting',
+    'SfdMacFeature',
+    'SfdMacFeatures',
     'SfdJustificationPriority',
     'SfdJustificationLanguage',
     'SfdJustificationScript',
