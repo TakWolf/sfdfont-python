@@ -225,10 +225,17 @@ def _dump_body(font, *, cid_child: bool = False) -> bytes:
                     raise SfdValidationError('glyph-level payload must be TtfInstrs')
                 result.append(binary(item))
             for layer in glyph.layers:
-                if font.multilayer and layer.index > 0:
-                    from sfdfont._paint import encode_paint
+                if font.multilayer and layer.paint is not None:
+                    from sfdfont._paint import encode_gradient, encode_paint, encode_pattern
 
                     line('Layer:', encode_paint(layer.index, layer.paint))
+                    for prefix, capital in [('fill', 'Fill'), ('stroke', 'Stroke')]:
+                        gradient = getattr(layer.paint, prefix + '_gradient')
+                        pattern = getattr(layer.paint, prefix + '_pattern')
+                        if gradient is not None:
+                            line(capital + 'Gradient:', encode_gradient(gradient))
+                        if pattern is not None:
+                            line(capital + 'Pattern:', encode_pattern(pattern))
                 else:
                     line(
                         'Back' if layer.index == 0 else 'Fore' if layer.index == 1 else 'Layer:',

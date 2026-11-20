@@ -150,7 +150,18 @@ def record(reader: Reader, key: str) -> SfdRecord:
         return kern_class_record(reader, key)
     if key == 'Lookup:':
         return lookup_record(reader, key)
-    if key in ('StartChar:', 'BeginChars:', 'BitmapFont:', 'BDFChar:', 'BDFRefChar:', 'DupEnc:'):
+    if key in (
+        'StartChar:',
+        'BeginChars:',
+        'BitmapFont:',
+        'BDFChar:',
+        'BDFRefChar:',
+        'DupEnc:',
+        'FillGradient:',
+        'StrokeGradient:',
+        'FillPattern:',
+        'StrokePattern:',
+    ):
         reader.fail(f'misplaced structural record {key}')
     if key in ('PickledData:', 'PickledDataWithLists:'):
         start = reader.pos
@@ -385,6 +396,20 @@ def glyph(reader: Reader, font: SfdFont, *, cid_child: bool = False) -> SfdGlyph
                 result.layers.append(current)
             if paint is not None:
                 current.paint = paint
+        elif key in ('FillGradient:', 'StrokeGradient:', 'FillPattern:', 'StrokePattern:'):
+            from sfdfont._paint import decode_gradient, decode_pattern
+
+            if not font.multilayer or current is None or current.paint is None:
+                reader.fail('brush records require a Type 3 foreground layer')
+            prefix = 'fill' if key.startswith('Fill') else 'stroke'
+            if (
+                getattr(current.paint, prefix + '_gradient') is not None
+                or getattr(current.paint, prefix + '_pattern') is not None
+            ):
+                reader.fail('duplicate layer brush')
+            gradient = key.endswith('Gradient:')
+            value = decode_gradient(reader.line()) if gradient else decode_pattern(reader.line())
+            setattr(current.paint, prefix + ('_gradient' if gradient else '_pattern'), value)
         elif key == 'SplineSet' or (font.version in ('1.0', '2.0') and re.fullmatch(r'[-+\d.]+', key)):
             if current is None:
                 current = SfdLayer()

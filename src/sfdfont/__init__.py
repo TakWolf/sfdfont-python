@@ -19,13 +19,16 @@ from sfdfont.layout import (
 from sfdfont.limits import SfdReadLimits
 from sfdfont.metadata import SfdLanguageNames, SfdMetadata
 from sfdfont.outline import SfdContour, SfdPoint, SfdSpiroPoint
-from sfdfont.paint import SfdPaint
+from sfdfont.paint import SfdGradient, SfdGradientStop, SfdPaint, SfdPattern
 from sfdfont.payload import SfdPayload
 from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdGradient',
+    'SfdGradientStop',
+    'SfdPattern',
     'SfdState',
     'SfdStateMachine',
     'SfdCidInfo',

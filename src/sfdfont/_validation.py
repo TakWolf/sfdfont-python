@@ -135,13 +135,13 @@ def validate(font, *, layout: bool = True) -> None:
         else:
             check(all(index in indices for index in layer_ids), 'undefined glyph layer')
         for layer in glyph.layers:
-            if font.multilayer and layer.index > 0:
+            if font.multilayer and (layer.index > 0 or layer.paint is not None):
                 from sfdfont._paint import validate_paint
 
                 check(layer.paint is not None, 'Type 3 foreground layers require paint settings')
                 validate_paint(layer.paint)
             else:
-                check(layer.paint is None, 'paint settings require Type 3 foreground layers')
+                check(layer.paint is None, 'paint settings require Type 3 layers')
             for record in layer.records:
                 if record.keyword == 'UndoRedoHistory':
                     from sfdfont._history import history_layer
@@ -163,9 +163,16 @@ def validate(font, *, layout: bool = True) -> None:
         check(encoding not in encodings or encodings[encoding] == target, f'conflicting alias encoding {encoding}')
         encodings[encoding] = target
     graph = {}
+    named_glyphs = {glyph.name: glyph for glyph in font.glyphs}
     for glyph in font.glyphs:
         for layer in glyph.layers:
             edges = []
+            if layer.paint is not None:
+                for pattern in (layer.paint.fill_pattern, layer.paint.stroke_pattern):
+                    if pattern is not None:
+                        check(pattern.glyph in named_glyphs, f'dangling pattern glyph {pattern.glyph!r}')
+                        target = named_glyphs[pattern.glyph]
+                        edges.extend((target.glyph_id, v.index) for v in target.layers if v.index > 0)
             for ref in layer.references:
                 target = encodings.get(ref.target) if ref.encoded else ref.target
                 check(target in gids, f'dangling glyph reference {ref.target}')
@@ -179,7 +186,10 @@ def validate(font, *, layout: bool = True) -> None:
                     check(len(ref.point_match) == 2, 'invalid point-match pair')
                     for point in ref.point_match:
                         number(point, 'reference point index', 0)
-                edges.append((target, layer.index))
+                if font.multilayer:
+                    edges.extend((target, v.index) for v in gids[target].layers if v.index > 0)
+                else:
+                    edges.append((target, layer.index))
             graph[(glyph.glyph_id, layer.index)] = edges
     cycles(graph, 'outline')
     contours(font.guidelines)
