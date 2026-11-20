@@ -1,5 +1,5 @@
 from examples import BUILD_DIR
-from sfdfont import SfdDesignSize, SfdFont, SfdGaspRange, SfdGaspTable, SfdStyleName
+from sfdfont import SfdDesignSize, SfdFont, SfdFontMetric, SfdGaspRange, SfdGaspTable, SfdStyleName
 
 
 def main() -> None:
@@ -9,6 +9,17 @@ def main() -> None:
     font.metadata.records.append(
         SfdDesignSize(120, (100, 140), 1, [SfdStyleName(0x0409, 'Text'), SfdStyleName(0x0804, '正文')]).to_record()
     )
+    for keyword, value in {
+        'PfmFamily:': 17,
+        'TTFWeight:': 400,
+        'TTFWidth:': 5,
+        'OS2TypoAscent:': 800,
+        'OS2TypoAOffset:': 0,
+        'OS2TypoDescent:': -200,
+        'OS2TypoDOffset:': 0,
+        'StyleMap:': 0x40,
+    }.items():
+        font.metadata.set_metric(SfdFontMetric(keyword, value))
     outputs_dir = BUILD_DIR.joinpath('create_font_info')
     outputs_dir.mkdir(parents=True, exist_ok=True)
     output_path = outputs_dir.joinpath('font_info.sfd')

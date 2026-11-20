@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import copy, deepcopy
 from typing import Any
 
+from sfdfont.metrics import SfdFontMetric
 from sfdfont.record import SfdRecord
 
 
@@ -169,3 +170,29 @@ class SfdMetadata:
 
     def deepcopy(self) -> SfdMetadata:
         return deepcopy(self)
+
+    def find_metric(self, keyword: str) -> SfdFontMetric | None:
+        """Decode an independent metric, including historical keyword aliases."""
+        from sfdfont._metrics import SCALAR_KEYS, metric_key
+        from sfdfont.error import SfdValidationError
+
+        if keyword not in SCALAR_KEYS:
+            raise SfdValidationError('invalid font metric keyword')
+        items = [item for item in self.records if metric_key(item.keyword) == metric_key(keyword)]
+        if len(items) > 1:
+            raise SfdValidationError('duplicate font metric')
+        return SfdFontMetric.from_record(items[0]) if items else None
+
+    def set_metric(self, metric: SfdFontMetric) -> None:
+        """Replace a metric or append it, preserving all other encoded records."""
+        from sfdfont._metrics import metric_key
+        from sfdfont.error import SfdValidationError
+
+        replacement = metric.to_record()
+        indices = [i for i, item in enumerate(self.records) if metric_key(item.keyword) == metric_key(metric.keyword)]
+        if len(indices) > 1:
+            raise SfdValidationError('duplicate font metric')
+        if indices:
+            self.records[indices[0]] = replacement
+        else:
+            self.records.append(replacement)

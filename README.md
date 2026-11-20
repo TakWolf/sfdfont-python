@@ -247,6 +247,24 @@ Both the historical space-separated range and the usual `bottom-top` form can be
 read; writing uses the latter. The library does not infer style names or compile
 the OpenType size feature.
 
+`SfdFontMetric(keyword, value)` covers PFM family, weight/width, line gaps, OS/2
+and hhea metrics, offset flags, styles, embedding flags and OS/2 version fields.
+
+```python
+from sfdfont import SfdFontMetric
+
+font.metadata.set_metric(SfdFontMetric('TTFWeight:', 500))
+ascent = font.metadata.find_metric('OS2TypoAscent:')
+```
+
+`find_metric()` returns an independent object or `None`; apply edits with
+`set_metric()`. Historical `PfmWeight:` and `HHead*` aliases are recognized.
+Signed 16-bit fields decode unsigned bit patterns to their native signed value;
+PFM family uses an unsigned byte and boolean fields use integers 0/1. StyleMap
+accepts the hexadecimal forms FontForge writes. Values and offset flags remain
+separate: the library does not compute absolute metrics from outline bounds or
+validate the font for OpenType generation.
+
 See `examples/create_font_info.py` for a complete example.
 
 ### Edit baselines
@@ -407,6 +425,7 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
 - Font names, language names, comments, SFD UTF-7, UTF-8 and legacy text fields.
 - Editable GaspTable ranges and versions, with count, ppem order and integer checks.
 - Optical DesignSize, optional ranges/style IDs and multilingual style names.
+- Editable OS/2, PFM and hhea numeric metrics, styles, offset flags and legacy aliases.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.
