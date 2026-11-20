@@ -4,13 +4,16 @@ from sfdfont._metrics import SCALAR_KEYS, decode_metric, metric_key
 from sfdfont._os2 import OS2_KEYS, decode_os2, vendor_record
 from sfdfont._size import decode_design_size
 from sfdfont._tex import decode_tex_data
+from sfdfont._woff import decode_woff_metadata
 from sfdfont.error import SfdParseError, SfdValidationError
 from sfdfont.record import SfdRecord
 
-INFO_KEYS = SCALAR_KEYS | OS2_KEYS | {'GaspTable:', 'DesignSize:', 'OtfFeatName:', 'TeXData:'}
+INFO_KEYS = SCALAR_KEYS | OS2_KEYS | {'GaspTable:', 'DesignSize:', 'OtfFeatName:', 'TeXData:', 'woffMetadata:'}
 
 
 def decode_info(item):
+    if item.keyword == 'woffMetadata:':
+        return decode_woff_metadata(item)
     if item.keyword == 'TeXData:':
         return decode_tex_data(item)
     if item.keyword == 'OtfFeatName:':

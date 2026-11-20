@@ -50,7 +50,8 @@ ALIASES = {
     'HHeadAOffset:': 'HheadAOffset:',
     'HHeadDOffset:': 'HheadDOffset:',
 }
-SCALAR_KEYS = SIGNED_KEYS | BOOL_KEYS | set(ALIASES) | {'PfmFamily:', 'StyleMap:'}
+INT32_KEYS = {'woffMajor:', 'woffMinor:'}
+SCALAR_KEYS = SIGNED_KEYS | BOOL_KEYS | INT32_KEYS | set(ALIASES) | {'PfmFamily:', 'StyleMap:'}
 
 
 def metric_key(key):
@@ -89,6 +90,8 @@ def decode_metric(item):
             if not -128 <= value <= 255:
                 raise SfdParseError('PFM family exceeds byte storage')
             value &= 255
+        elif key in INT32_KEYS and not -0x80000000 <= value <= 0x7FFFFFFF:
+            raise SfdParseError('font metric exceeds 32-bit storage')
     return SfdFontMetric(item.keyword, value)
 
 
@@ -98,6 +101,8 @@ def encode_metric(value):
     check(value.keyword in SCALAR_KEYS, 'invalid font metric keyword')
     key = metric_key(value.keyword)
     low, high = (-32768, 32767) if key in SIGNED_KEYS | {'StyleMap:'} else (0, 255 if key == 'PfmFamily:' else 1)
+    if key in INT32_KEYS:
+        low, high = -0x80000000, 0x7FFFFFFF
     number(value.value, 'font metric value', low, high)
     data = f'0x{value.value & 0xFFFFFFFF:04x}'.encode() if key == 'StyleMap:' else str(value.value).encode()
     return SfdRecord(value.keyword, data)

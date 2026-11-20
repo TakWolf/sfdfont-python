@@ -34,6 +34,7 @@ def check_preservation(font) -> None:
         return
     opaque = bool(
         protected_records(font.metadata.records)
+        or any(item.keyword == 'woffMetadata:' for item in font.metadata.records)
         or feature_names_opaque(font.metadata.records)
         or group_identity(font.metadata.records)
         or legacy_identity(font.metadata.records)

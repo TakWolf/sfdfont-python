@@ -71,8 +71,10 @@ from sfdfont.size import SfdDesignSize, SfdStyleName
 from sfdfont.tables import SfdPrivateDict, SfdPrivateEntry, SfdShortTable, SfdShortTableWord
 from sfdfont.tex import SfdTexData, SfdTexMetrics
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
+from sfdfont.woff import SfdWoffMetadata
 
 __all__ = [
+    'SfdWoffMetadata',
     'SfdGlyphGroup',
     'SfdGroupKerningPair',
     'SfdTexData',

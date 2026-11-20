@@ -246,6 +246,21 @@ These models also use explicit `from_record()` / `to_record()` conversions.
 
 See `examples/create_font_info.py` for a complete example.
 
+### Edit WOFF metadata
+
+`SfdWoffMetadata(text)` reads and writes the `woffMetadata:` SFD UTF-7 string,
+retaining XML text, significant whitespace and line breaks without parsing or
+executing XML. Use explicit `from_record()` / `to_record()` replacement in
+`font.metadata.records`.
+
+WOFF version components use `SfdFontMetric('woffMajor:', value)` and
+`SfdFontMetric('woffMinor:', value)` with `metadata.find_metric()` / `set_metric()`.
+Their signed 32-bit stored values remain independent, including FontForge's
+`0x4455` unset sentinel; missing components are not inferred. This preserves SFD
+data and does not check a generated WOFF header. While metadata text is retained,
+the existing protection for glyph identities and outlines remains in effect.
+See `examples/create_woff_metadata.py` for a complete example.
+
 ### Retain UFO groups and raw kerning
 
 `SfdGlyphGroup(name, glyphs)` reads and writes `Group:`; `SfdGroupKerningPair`
@@ -468,6 +483,8 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
   native integer bounds and preservation of undefined sentinels.
 - UFO glyph groups and raw horizontal/vertical kerning records, preserving unresolved
   bindings and keeping them separate from native kerning tables.
+- WOFF version components and metadata text, without XML parsing or automatic
+  version defaulting.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.
