@@ -69,7 +69,7 @@ def contours(items) -> None:
             )
             number(point.flags, 'point flags', 0, 0xFFFFFFFF)
             if point.hint_mask is not None:
-                check(isinstance(point.hint_mask, bytes) and bool(point.hint_mask), 'invalid hint mask')
+                check(isinstance(point.hint_mask, bytes) and 1 <= len(point.hint_mask) <= 12, 'invalid hint mask')
             for value in (point.ttf_index, point.next_cp_index):
                 if value is not None:
                     number(value, 'TTF point index', -1, 65535)
@@ -82,6 +82,7 @@ def contours(items) -> None:
 def validate(font, *, layout: bool = True) -> None:
     from sfdfont._extended import EXTENDED_KEYS
     from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
+    from sfdfont._hints import HINT_KEYS
     from sfdfont._legacy_layout import LEGACY_GLYPH_KEYS
 
     def font_record(record) -> bool:
@@ -101,7 +102,10 @@ def validate(font, *, layout: bool = True) -> None:
         validate_mm(font)
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
     for record in font.metadata.records:
-        check(record.keyword not in GLYPH_LAYOUT_KEYS | LEGACY_GLYPH_KEYS, 'glyph layout record in font metadata')
+        check(
+            record.keyword not in GLYPH_LAYOUT_KEYS | LEGACY_GLYPH_KEYS | HINT_KEYS,
+            'glyph layout record in font metadata',
+        )
         check(record.keyword != 'UndoRedoHistory', 'undo history belongs in a glyph layer')
         check(
             version_matches(record.keyword, font.version), f'layout record {record.keyword} conflicts with SFD version'
@@ -232,7 +236,9 @@ def validate(font, *, layout: bool = True) -> None:
     from sfdfont._layout_validation import validate_layout
 
     if layout:
+        from sfdfont._hints import validate_hints
         from sfdfont._math import validate_math
 
         validate_layout(font)
         validate_math(font)
+        validate_hints(font)

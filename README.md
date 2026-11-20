@@ -249,6 +249,32 @@ name existing glyphs in the font. The final corner-kern entry's height is retain
 although OpenType does not use it. See `examples/edit_math.py` for a complete example
 using an upstream test font.
 
+### Edit PostScript hints
+
+`SfdStemHints` / `SfdStemHint` describe `HStem:` and `VStem:` records, including
+ghost flags and activation intervals. `SfdDiagonalHints` / `SfdDiagonalHint`
+retain old eight-coordinate `DStem:` or six-coordinate `DStem2:` records; only
+the latter can contain activation intervals. Coordinates and intervals are
+preserved without recomputing the hints.
+
+```python
+from sfdfont import SfdStemHints
+
+hints = SfdStemHints.from_record(stem_record)
+hints.hints[0].start += 1
+updated_record = hints.to_record()
+```
+
+Replace the original entry in `glyph.records` or `layer.records` to apply the
+change. `SfdCounterMasks` stores masks as byte strings, each one to twelve bytes.
+`SfdMinimumDistances` / `SfdMinimumDistance` retain obsolete axis and point-pair
+bindings, including the `-1` sentinel; they do not resolve or apply those distances.
+While dependent data is retained after loading, hint counts, minimum-distance
+bindings and outlines remain protected. Existing stem/diagonal coordinates,
+activation intervals and counter-mask bytes can be edited.
+
+See `examples/edit_hints.py` for a complete edit of Ambrosia.
+
 ## Supported formats and boundaries
 
 - SFD versions 1.0, 2.0, 3.0, 3.1 and 3.2, with standard-library-only runtime code.
@@ -258,6 +284,10 @@ using an upstream test font.
   commands in quadratic layers. Closing endpoints are retained without rewriting.
 - Named points/contours, clipping path flags, path start offsets and Spiro control
   points. Spiro coordinates are preserved; this library does not regenerate curves.
+- PostScript horizontal, vertical and diagonal hints, ghost flags and activation
+  intervals have editable models. Counter masks and obsolete minimum-distance
+  bindings are retained and checked. Point and counter masks are limited to 96 bits;
+  hints are not generated or applied to outlines.
 - Glyph encodings, alternate Unicode/variation mappings, DupEnc encoding aliases,
   vector references and guideline contours. `encoding_aliases` maps additional
   encoding slots to glyph IDs; `find_glyph_by_encoding()` also searches these aliases.
@@ -311,7 +341,7 @@ Unsupported structures raise `SfdUnsupportedError`; malformed structures raise
 Writing normalizes whitespace and numeric formatting; it does not promise
 byte-for-byte reproduction. For loaded fonts retaining uninterpreted records or
 payloads, metadata text, glyph advances/flags, bitmap pixels, guidelines, paint
-settings and validated layout/MATH parameters can be edited. Glyph identities, outlines,
+settings and validated layout/MATH/hint parameters can be edited. Glyph identities, outlines,
 layer structure and uninterpreted data remain protected when retained records may
 depend on them. Incompatible edits raise `SfdValidationError` before the destination
 file is opened. Explicitly removing dependent opaque data permits supported geometry
@@ -329,9 +359,11 @@ explicit rejection tests for duplicate IDs/encodings, dangling references or cou
 mismatches; no samples are silently skipped or repaired. In particular, CaslonMM's
 family structure is supported, but its original duplicate IDs fail strict loading.
 
-`SfdReadLimits` configures document byte, glyph, point and cumulative binary-payload
-budgets. Glyph/point limits apply across a whole MM/CID document, including history
-points. Exceeding a budget raises `SfdLimitError`, a subclass of `SfdParseError`.
+`SfdReadLimits` configures document byte, glyph, point, hint and cumulative
+binary-payload budgets. Glyph/point/hint limits apply across a whole MM/CID document,
+including history. `max_hints` counts stem/diagonal entries, activation intervals,
+counter masks and minimum-distance entries. Exceeding a budget raises `SfdLimitError`,
+a subclass of `SfdParseError`.
 
 ## Development
 

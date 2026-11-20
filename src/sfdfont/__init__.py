@@ -18,6 +18,15 @@ from sfdfont.glyph_layout import (
     SfdPositionValue,
     SfdSubstitution,
 )
+from sfdfont.hints import (
+    SfdCounterMasks,
+    SfdDiagonalHint,
+    SfdDiagonalHints,
+    SfdMinimumDistance,
+    SfdMinimumDistances,
+    SfdStemHint,
+    SfdStemHints,
+)
 from sfdfont.layer import SfdLayer, SfdLayerInfo
 from sfdfont.layout import (
     SfdContext,
@@ -48,6 +57,13 @@ from sfdfont.reference import SfdReference
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdStemHint',
+    'SfdStemHints',
+    'SfdDiagonalHint',
+    'SfdDiagonalHints',
+    'SfdCounterMasks',
+    'SfdMinimumDistance',
+    'SfdMinimumDistances',
     'SfdLegacyBinding',
     'SfdLegacyPst',
     'SfdLegacyKerningPair',

@@ -30,6 +30,7 @@ class Reader:
         self.pos = 0
         self.payload_bytes = 0
         self.point_count = 0
+        self.hint_count = 0
         self.glyph_count = 0
         self.next_gid = 0
 

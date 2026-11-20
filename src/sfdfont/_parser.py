@@ -121,6 +121,10 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    if key in ('HStem:', 'VStem:', 'DStem:', 'DStem2:', 'CounterMasks:', 'MinimumDistance:'):
+        from sfdfont._hints import hint_record
+
+        return hint_record(reader, key)
     if key in ('MarkAttachClasses:', 'MarkAttachSets:'):
         from sfdfont._marks import mark_record
 
@@ -288,6 +292,8 @@ def spline_set(reader: Reader, *, legacy: bool = False) -> list[SfdContour]:
         flags, mask, ttf, cp = match.groups()
         if mask and len(mask) % 2:
             reader.fail('odd-length hint mask')
+        if mask and len(mask) > 24:
+            reader.fail('hint mask exceeds 96 bits')
         point = SfdPoint(
             coords[-2],
             coords[-1],

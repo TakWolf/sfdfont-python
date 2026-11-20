@@ -11,6 +11,7 @@ class SfdReadLimits:
     max_glyphs: int
     max_points: int
     max_payload_bytes: int
+    max_hints: int
 
     def __init__(
         self,
@@ -18,6 +19,7 @@ class SfdReadLimits:
         max_glyphs: int = 100_000,
         max_points: int = 2_000_000,
         max_payload_bytes: int = 64 * 1024 * 1024,
+        max_hints: int = 1_000_000,
     ) -> None:
         if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 0:
             raise ValueError('max_bytes must be a nonnegative integer')
@@ -31,6 +33,9 @@ class SfdReadLimits:
         if isinstance(max_payload_bytes, bool) or not isinstance(max_payload_bytes, int) or max_payload_bytes < 0:
             raise ValueError('max_payload_bytes must be a nonnegative integer')
         object.__setattr__(self, 'max_payload_bytes', max_payload_bytes)
+        if isinstance(max_hints, bool) or not isinstance(max_hints, int) or max_hints < 0:
+            raise ValueError('max_hints must be a nonnegative integer')
+        object.__setattr__(self, 'max_hints', max_hints)
 
     def __copy__(self) -> SfdReadLimits:
         return SfdReadLimits(
@@ -38,6 +43,7 @@ class SfdReadLimits:
             self.max_glyphs,
             self.max_points,
             self.max_payload_bytes,
+            self.max_hints,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdReadLimits:
@@ -51,6 +57,7 @@ class SfdReadLimits:
             and self.max_glyphs == other.max_glyphs
             and self.max_points == other.max_points
             and self.max_payload_bytes == other.max_payload_bytes
+            and self.max_hints == other.max_hints
         )
 
     def __repr__(self) -> str:
@@ -59,7 +66,8 @@ class SfdReadLimits:
             f'max_bytes={self.max_bytes!r}, '
             f'max_glyphs={self.max_glyphs!r}, '
             f'max_points={self.max_points!r}, '
-            f'max_payload_bytes={self.max_payload_bytes!r}'
+            f'max_payload_bytes={self.max_payload_bytes!r}, '
+            f'max_hints={self.max_hints!r}'
             f')'
         )
 
@@ -70,6 +78,7 @@ class SfdReadLimits:
                 self.max_glyphs,
                 self.max_points,
                 self.max_payload_bytes,
+                self.max_hints,
             )
         )
 
