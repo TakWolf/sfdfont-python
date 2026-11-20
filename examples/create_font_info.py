@@ -1,5 +1,15 @@
 from examples import BUILD_DIR
-from sfdfont import SfdDesignSize, SfdFont, SfdFontMetric, SfdGaspRange, SfdGaspTable, SfdStyleName
+from sfdfont import (
+    SfdDesignSize,
+    SfdFont,
+    SfdFontMetric,
+    SfdGaspRange,
+    SfdGaspTable,
+    SfdOs2Mask,
+    SfdOs2Vendor,
+    SfdPanose,
+    SfdStyleName,
+)
 
 
 def main() -> None:
@@ -8,6 +18,14 @@ def main() -> None:
     font.metadata.records.append(SfdGaspTable([SfdGaspRange(8, 2), SfdGaspRange(65535, 3)]).to_record())
     font.metadata.records.append(
         SfdDesignSize(120, (100, 140), 1, [SfdStyleName(0x0409, 'Text'), SfdStyleName(0x0804, '正文')]).to_record()
+    )
+    font.metadata.records.extend(
+        [
+            SfdPanose([2, 0, 6, 3, 0, 0, 0, 0, 0, 0]).to_record(),
+            SfdOs2Mask('OS2CodePages:', 1).to_record(),
+            SfdOs2Mask('OS2UnicodeRanges:', 1).to_record(),
+            SfdOs2Vendor(b'TakW').to_record(),
+        ]
     )
     for keyword, value in {
         'PfmFamily:': 17,

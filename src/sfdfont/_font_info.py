@@ -1,10 +1,11 @@
 from sfdfont._gasp import decode_gasp
 from sfdfont._metrics import SCALAR_KEYS, decode_metric, metric_key
+from sfdfont._os2 import OS2_KEYS, decode_os2, vendor_record
 from sfdfont._size import decode_design_size
 from sfdfont.error import SfdParseError, SfdValidationError
 from sfdfont.record import SfdRecord
 
-INFO_KEYS = SCALAR_KEYS | {'GaspTable:', 'DesignSize:'}
+INFO_KEYS = SCALAR_KEYS | OS2_KEYS | {'GaspTable:', 'DesignSize:'}
 
 
 def decode_info(item):
@@ -14,10 +15,14 @@ def decode_info(item):
         return decode_design_size(item)
     if item.keyword in SCALAR_KEYS:
         return decode_metric(item)
+    if item.keyword in OS2_KEYS:
+        return decode_os2(item)
     raise SfdParseError('unexpected font information record kind')
 
 
 def info_record(reader, key):
+    if key == 'OS2Vendor:':
+        return vendor_record(reader, key)
     item = SfdRecord(key, reader.line())
     decode_info(item)
     return item

@@ -265,6 +265,14 @@ accepts the hexadecimal forms FontForge writes. Values and offset flags remain
 separate: the library does not compute absolute metrics from outline bounds or
 validate the font for OpenType generation.
 
+`SfdPanose.values` contains ten unsigned byte values, defaulting to ten zeros;
+legacy signed-byte spellings are also accepted when reading. `SfdOs2Mask`
+represents `OS2CodePages:` or `OS2UnicodeRanges:` as one unsigned integer with
+64 or 128 bits. SFD stores the least significant 32-bit word first; unknown bits
+are retained. `SfdOs2Vendor.vendor` contains exactly four bytes, including any
+historical NUL padding. It is a fixed byte field rather than UTF-7 text.
+These models also use explicit `from_record()` / `to_record()` conversions.
+
 See `examples/create_font_info.py` for a complete example.
 
 ### Edit baselines
@@ -426,6 +434,7 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
 - Editable GaspTable ranges and versions, with count, ppem order and integer checks.
 - Optical DesignSize, optional ranges/style IDs and multilingual style names.
 - Editable OS/2, PFM and hhea numeric metrics, styles, offset flags and legacy aliases.
+- PANOSE byte values, OS/2 Unicode/code-page bitmasks and fixed four-byte vendor IDs.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.
