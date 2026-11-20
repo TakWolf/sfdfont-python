@@ -20,6 +20,9 @@ def check_preservation(font) -> None:
     same = (
         font.version == original.version
         and font.multilayer == original.multilayer
+        and font.cid == original.cid
+        and [[(g.glyph_id, g.name, g.encoding) for g in sub.glyphs] for sub in font.subfonts]
+        == [[(g.glyph_id, g.name, g.encoding) for g in sub.glyphs] for sub in original.subfonts]
         and font.layer_infos == original.layer_infos
         and font.encoding_size == original.encoding_size
         and font.encoding_aliases == original.encoding_aliases

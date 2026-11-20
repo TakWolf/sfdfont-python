@@ -79,7 +79,11 @@ def contours(items) -> None:
             )
 
 
-def validate(font) -> None:
+def validate(font, *, layout: bool = True) -> None:
+    if font.subfonts or font.cid is not None:
+        from sfdfont._family import validate_cid
+
+        validate_cid(font)
     if font.multiple_master is not None:
         from sfdfont._family import validate_mm
 
@@ -162,6 +166,7 @@ def validate(font) -> None:
             graph[(glyph.glyph_id, layer.index)] = edges
     cycles(graph, 'outline')
     contours(font.guidelines)
+    bitmap_gids = gids if not font.subfonts else {g.glyph_id: g for sub in font.subfonts for g in sub.glyphs}
     for strike in font.bitmap_strikes:
         number(strike.pixelsize, 'bitmap pixelsize', 1)
         number(strike.ascent, 'bitmap ascent', 0)
@@ -169,7 +174,7 @@ def validate(font) -> None:
         check(strike.depth in (1, 2, 4, 8), 'unsupported bitmap depth')
         seen = set()
         for glyph in strike.glyphs:
-            check(glyph.glyph_id in gids, f'bitmap refers to missing glyph {glyph.glyph_id}')
+            check(glyph.glyph_id in bitmap_gids, f'bitmap refers to missing glyph {glyph.glyph_id}')
             check(glyph.glyph_id not in seen, 'duplicate bitmap glyph ID')
             seen.add(glyph.glyph_id)
             for value in (glyph.xmin, glyph.xmax, glyph.ymin, glyph.ymax, glyph.advance):
@@ -189,4 +194,5 @@ def validate(font) -> None:
         cycles(graph, 'bitmap')
     from sfdfont._layout_validation import validate_layout
 
-    validate_layout(font)
+    if layout:
+        validate_layout(font)

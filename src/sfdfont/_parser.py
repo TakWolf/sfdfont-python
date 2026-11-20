@@ -41,6 +41,10 @@ _MULTILINE = {
 }
 _UNSUPPORTED = {
     'BeginSubFonts:',
+    'Registry:',
+    'Ordering:',
+    'Supplement:',
+    'CIDVersion:',
     'BeginMMFonts:',
     'MMCounts:',
     'MMAxis:',
@@ -269,7 +273,7 @@ def reference(reader: Reader, encoded: bool) -> SfdReference:
     return SfdReference(target, unicode, parts[2] == b'S', transform, flags, point_match, outdated, encoded)
 
 
-def glyph(reader: Reader, font: SfdFont) -> SfdGlyph:
+def glyph(reader: Reader, font: SfdFont, *, cid_child: bool = False) -> SfdGlyph:
     name = string(reader.line())
     if not name:
         reader.fail('empty glyph name')
@@ -295,6 +299,8 @@ def glyph(reader: Reader, font: SfdFont) -> SfdGlyph:
                 result.encoding, result.unicode = values[:2]
                 if len(values) == 3 and values[2] != 65535:
                     result.glyph_id = values[2]
+                elif len(values) == 2 and cid_child:
+                    result.glyph_id = result.encoding
                 reader.next_gid = max(reader.next_gid, result.glyph_id + 1)
             elif len(values) != 1:
                 reader.fail(f'{key} requires one integer')
@@ -383,7 +389,7 @@ def parse_font(stream: bytes | bytearray | BinaryIO, limits: SfdReadLimits | Non
     raise AssertionError
 
 
-def _parse_font(reader: Reader, version: str | None = None) -> SfdFont:
+def _parse_font(reader: Reader, version: str | None = None, *, cid_child: bool = False) -> SfdFont:
     nested = version is not None
     if not nested:
         if reader.word() != 'SplineFontDB:':
@@ -398,7 +404,7 @@ def _parse_font(reader: Reader, version: str | None = None) -> SfdFont:
     seen_chars = False
     while True:
         key = reader.word()
-        if key == 'EndSplineFont':
+        if key == ('EndSubSplineFont' if cid_child else 'EndSplineFont'):
             if not seen_chars:
                 reader.fail('missing BeginChars')
             if len(font.layer_infos) != declared_layers:
@@ -412,7 +418,22 @@ def _parse_font(reader: Reader, version: str | None = None) -> SfdFont:
             if seen_chars or font != SfdFont(version=version):
                 reader.fail('MMCounts must precede font metadata')
             return parse_mm(reader, version)
-        if key == 'BeginChars:':
+        if key == 'BeginSubFonts:' and not cid_child:
+            if seen_chars:
+                reader.fail('duplicate font body')
+            fields = reader.line().split()
+            if len(fields) != 2:
+                reader.fail('BeginSubFonts requires two integers')
+            count, font.encoding_size = (integer(v) for v in fields)
+            if count < 1 or font.encoding_size < 0:
+                reader.fail('invalid BeginSubFonts count')
+            if count > reader.limits.max_bytes:
+                reader.fail('subfont count exceeds document budget', SfdLimitError)
+            font.subfonts = [_parse_font(reader, version, cid_child=True) for _ in range(count)]
+            if reader.word() != 'EndSubFonts':
+                reader.fail('missing EndSubFonts')
+            seen_chars = True
+        elif key == 'BeginChars:':
             if seen_chars:
                 reader.fail('duplicate BeginChars')
             seen_chars = True
@@ -420,7 +441,7 @@ def _parse_font(reader: Reader, version: str | None = None) -> SfdFont:
             if len(fields) != 2:
                 reader.fail('BeginChars requires two integers')
             font.encoding_size, count = (integer(value) for value in fields)
-            if min(font.encoding_size, count) < 0:
+            if font.encoding_size < 0 or count < (-1 if cid_child else 0):
                 reader.fail('negative BeginChars count')
             if version != '1.0' and count > reader.limits.max_glyphs:
                 reader.fail('max_glyphs exceeded', SfdLimitError)
@@ -432,9 +453,9 @@ def _parse_font(reader: Reader, version: str | None = None) -> SfdFont:
                     reader.fail('expected StartChar or EndChars')
                 if reader.glyph_count >= reader.limits.max_glyphs:
                     reader.fail('max_glyphs exceeded', SfdLimitError)
-                font.glyphs.append(glyph(reader, font))
+                font.glyphs.append(glyph(reader, font, cid_child=cid_child))
                 reader.glyph_count += 1
-            if version != '1.0' and len(font.glyphs) != count:
+            if version != '1.0' and count != -1 and len(font.glyphs) != count:
                 reader.fail('BeginChars count differs from actual glyph count')
         elif key == 'BitmapFont:' and seen_chars:
             from sfdfont._bitmap import bitmap
@@ -472,6 +493,20 @@ def _parse_font(reader: Reader, version: str | None = None) -> SfdFont:
             if value not in (0, 1):
                 reader.fail('invalid MultiLayer flag')
             font.multilayer = bool(value)
+        elif key in ('Registry:', 'Ordering:', 'Supplement:', 'CIDVersion:') and not cid_child:
+            from sfdfont.cid import SfdCidInfo
+
+            if font.cid is None:
+                font.cid = SfdCidInfo()
+            field = {
+                'Registry:': 'registry',
+                'Ordering:': 'ordering',
+                'Supplement:': 'supplement',
+                'CIDVersion:': 'version',
+            }
+            data = reader.line()
+            value = integer(data) if key == 'Supplement:' else real(data) if key == 'CIDVersion:' else decode_text(data)
+            setattr(font.cid, field[key], value)
         elif key in _TEXT_FIELDS:
             setattr(font.metadata, _TEXT_FIELDS[key], decode_text(reader.line()))
         elif key in ('UComments:', 'FontLog:'):

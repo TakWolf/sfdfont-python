@@ -7,6 +7,8 @@ from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdName
 
 
 def snapshot_family(font) -> None:
+    for subfont in font.subfonts:
+        snapshot_family(subfont)
     if font.multiple_master is not None:
         for instance in font.multiple_master.instances:
             snapshot_family(instance)
@@ -128,6 +130,7 @@ def validate_mm(font) -> None:
     from sfdfont._validation import check, number, validate
 
     mm = font.multiple_master
+    check(not font.subfonts and font.cid is None, 'cannot combine CID and Multiple Master containers')
     axes = len(mm.axes)
     check(1 <= axes <= 16 and len(set(mm.axes)) == axes, 'invalid Multiple Master axes')
     for axis in mm.axes:
@@ -164,7 +167,34 @@ def validate_mm(font) -> None:
     for instance in mm.instances:
         check(instance is not font and instance.multiple_master is None, 'nested or cyclic Multiple Master family')
         check(instance.version == font.version, 'MM instance version mismatch')
+        check(not instance.subfonts and instance.cid is None, 'CID instance in Multiple Master family')
         validate(instance)
+
+
+def validate_cid(font) -> None:
+    from sfdfont._layout import LAYOUT_KEYS
+    from sfdfont._validation import check, number, validate
+
+    check(font.cid is not None and bool(font.subfonts), 'CID metadata requires subfonts')
+    check(not font.glyphs and not font.encoding_aliases, 'CID container cannot contain ordinary glyphs or aliases')
+    check(font.multiple_master is None, 'cannot combine CID and Multiple Master containers')
+    for value in (font.cid.registry, font.cid.ordering):
+        check(isinstance(value, str) and bool(re.fullmatch(r'[^\s\x00]+', value)), 'invalid CID registry/ordering')
+    number(font.cid.supplement, 'CID supplement', 0)
+    check(math.isfinite(font.cid.version) and font.cid.version >= 0, 'invalid CID version')
+    names = set()
+    for subfont in font.subfonts:
+        check(subfont is not font and not subfont.subfonts and subfont.cid is None, 'nested or cyclic CID font')
+        check(subfont.multiple_master is None, 'Multiple Master child in CID family')
+        check(subfont.version == font.version, 'CID subfont version mismatch')
+        check(subfont.metadata.font_name not in names, 'duplicate CID subfont name')
+        names.add(subfont.metadata.font_name)
+        check(not subfont.bitmap_strikes, 'CID bitmap strikes must be stored in the container')
+        check(
+            not any(r.keyword in LAYOUT_KEYS for r in subfont.metadata.records), 'CID layout belongs in the container'
+        )
+        check(all(g.glyph_id < font.encoding_size for g in subfont.glyphs), 'CID glyph exceeds container capacity')
+        validate(subfont, layout=False)
 
 
 def dump_mm(font) -> bytes:

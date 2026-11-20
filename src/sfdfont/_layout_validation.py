@@ -13,7 +13,8 @@ def need(condition: bool, message: str) -> None:
 
 
 def glyph_records(font):
-    for glyph in font.glyphs:
+    glyphs = list(font.iter_glyphs())
+    for glyph in glyphs:
         yield from glyph.records
         for layer in glyph.layers:
             yield from layer.records
@@ -34,7 +35,8 @@ def validate_layout(font) -> None:
             for sub in lookup.subtables:
                 need(sub.name not in subtables, f'duplicate subtable name {sub.name!r}')
                 subtables[sub.name] = lookup
-        names = {glyph.name for glyph in font.glyphs}
+        glyphs = list(font.iter_glyphs())
+        names = {glyph.name for glyph in glyphs}
 
         def members(values):
             for value in values:
@@ -118,7 +120,7 @@ def validate_layout(font) -> None:
             'Position2:': 257,
             'PairPos2:': 258,
         }
-        gids = {glyph.glyph_id for glyph in font.glyphs}
+        gids = {glyph.glyph_id for glyph in glyphs}
         anchors = set()
         for record in font.metadata.records:
             if record.keyword == 'AnchorClass2:':

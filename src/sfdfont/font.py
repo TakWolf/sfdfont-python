@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from copy import copy, deepcopy
 from os import PathLike
 from typing import Any, BinaryIO
 
 from sfdfont.bitmap import SfdBitmapStrike
+from sfdfont.cid import SfdCidInfo
 from sfdfont.glyph import SfdGlyph
 from sfdfont.layer import SfdLayerInfo
 from sfdfont.layout import SfdLookup
@@ -29,6 +31,8 @@ class SfdFont:
     encoding_aliases: dict[int, int]
     multilayer: bool
     multiple_master: SfdMultipleMaster | None
+    cid: SfdCidInfo | None
+    subfonts: list[SfdFont]
 
     def __init__(
         self,
@@ -45,6 +49,8 @@ class SfdFont:
         encoding_aliases: dict[int, int] | None = None,
         multilayer: bool = False,
         multiple_master: SfdMultipleMaster | None = None,
+        cid: SfdCidInfo | None = None,
+        subfonts: list[SfdFont] | None = None,
     ) -> None:
         self.version = version
         self.metadata = metadata if metadata is not None else SfdMetadata()
@@ -61,6 +67,8 @@ class SfdFont:
         self.encoding_aliases = encoding_aliases if encoding_aliases is not None else {}
         self.multilayer = multilayer
         self.multiple_master = multiple_master
+        self.cid = cid
+        self.subfonts = subfonts if subfonts is not None else []
 
     def __copy__(self) -> SfdFont:
         return SfdFont(
@@ -77,6 +85,8 @@ class SfdFont:
             self.encoding_aliases,
             self.multilayer,
             self.multiple_master,
+            self.cid,
+            self.subfonts,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdFont:
@@ -95,6 +105,8 @@ class SfdFont:
         copied.encoding_aliases = deepcopy(self.encoding_aliases, memo)
         copied.multilayer = deepcopy(self.multilayer, memo)
         copied.multiple_master = deepcopy(self.multiple_master, memo)
+        copied.cid = deepcopy(self.cid, memo)
+        copied.subfonts = deepcopy(self.subfonts, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -113,6 +125,8 @@ class SfdFont:
             and self.encoding_aliases == other.encoding_aliases
             and self.multilayer == other.multilayer
             and self.multiple_master == other.multiple_master
+            and self.cid == other.cid
+            and self.subfonts == other.subfonts
         )
 
     def __repr__(self) -> str:
@@ -129,7 +143,9 @@ class SfdFont:
             f'grid_quadratic={self.grid_quadratic!r}, '
             f'encoding_aliases={self.encoding_aliases!r}, '
             f'multilayer={self.multilayer!r}, '
-            f'multiple_master={self.multiple_master!r}'
+            f'multiple_master={self.multiple_master!r}, '
+            f'cid={self.cid!r}, '
+            f'subfonts={self.subfonts!r}'
             f')'
         )
 
@@ -148,23 +164,31 @@ class SfdFont:
         with open(file_path, 'rb') as stream:
             return SfdFont.parse(stream, limits=limits)
 
+    def iter_glyphs(self) -> Iterator[SfdGlyph]:
+        """Iterate ordinary glyphs or CID subfonts in their stored order."""
+        if self.subfonts:
+            for subfont in self.subfonts:
+                yield from subfont.glyphs
+        else:
+            yield from self.glyphs
+
     def find_glyphs_by_unicode(self, unicode: int) -> list[SfdGlyph]:
         return [
             glyph
-            for glyph in self.glyphs
+            for glyph in self.iter_glyphs()
             if glyph.unicode == unicode
             or any(alt.unicode == unicode and alt.variation_selector == -1 for alt in glyph.alternate_unicodes)
         ]
 
     def find_glyphs_by_name(self, name: str) -> list[SfdGlyph]:
-        return [glyph for glyph in self.glyphs if glyph.name == name]
+        return [glyph for glyph in self.iter_glyphs() if glyph.name == name]
 
     def find_glyph_by_encoding(self, encoding: int) -> SfdGlyph | None:
         """Find an encoding slot, including DupEnc aliases; slots are not Unicode."""
         if encoding in self.encoding_aliases:
             target = self.encoding_aliases[encoding]
-            return next((glyph for glyph in self.glyphs if glyph.glyph_id == target), None)
-        return next((glyph for glyph in self.glyphs if glyph.encoding == encoding and encoding != -1), None)
+            return next((glyph for glyph in self.iter_glyphs() if glyph.glyph_id == target), None)
+        return next((glyph for glyph in self.iter_glyphs() if glyph.encoding == encoding and encoding != -1), None)
 
     def find_lookup(self, name: str) -> SfdLookup | None:
         """Decode an independent lookup value; use set_lookup() to apply edits."""

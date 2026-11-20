@@ -34,7 +34,8 @@ def bitmap(reader: Reader, font: SfdFont) -> SfdBitmapStrike:
             fields = [integer(value) for value in reader.line().split()]
             if len(fields) == 6:
                 encoding = fields[0]
-                matches = [glyph for glyph in font.glyphs if glyph.encoding == encoding]
+                glyphs = list(font.iter_glyphs())
+                matches = list({g.glyph_id: g for g in glyphs if g.encoding == encoding}.values())
                 if len(matches) != 1:
                     reader.fail('legacy bitmap encoding has no unique glyph')
                 fields.insert(0, matches[0].glyph_id)

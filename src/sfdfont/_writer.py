@@ -46,6 +46,10 @@ def records(items) -> bytes:
         'Order2:',
         'DupEnc:',
         'MultiLayer:',
+        'Registry:',
+        'Ordering:',
+        'Supplement:',
+        'CIDVersion:',
     }
     for item in items:
         if item.keyword in forbidden or not isinstance(item.value, bytes):
@@ -119,7 +123,7 @@ def dump_font(font) -> bytes:
     return b'SplineFontDB: ' + font.version.encode() + b'\n' + body
 
 
-def _dump_body(font) -> bytes:
+def _dump_body(font, *, cid_child: bool = False) -> bytes:
     check_preservation(font)
     result: list[bytes] = []
 
@@ -129,6 +133,11 @@ def _dump_body(font) -> bytes:
     meta = font.metadata
     if font.multilayer:
         line('MultiLayer:', b'1')
+    if font.cid is not None:
+        line('Registry:', plain(font.cid.registry))
+        line('Ordering:', plain(font.cid.ordering))
+        line('Supplement:', str(font.cid.supplement).encode())
+        line('CIDVersion:', scalar(font.cid.version))
     if not re.fullmatch(r'[^\s\x00]+', meta.font_name):
         raise SfdValidationError('FontName must be a nonempty token')
     for key, value in [
@@ -178,72 +187,79 @@ def _dump_body(font) -> bytes:
         line('GridOrder2:', str(int(font.grid_quadratic)).encode())
         line('Grid')
         result.append(splines(font.guidelines))
-    line('BeginChars:', f'{font.encoding_size} {len(font.glyphs)}'.encode())
-    next_gid = 0
-    for glyph in font.glyphs:
-        if glyph.glyph_id == 65535 and next_gid != 65535:
-            raise SfdValidationError('glyph ID 65535 is reserved for the next implicit ID in SFD')
-        next_gid = max(next_gid, glyph.glyph_id + 1)
-        line('StartChar:', quote(glyph.name))
-        line('Encoding:', f'{glyph.encoding} {glyph.unicode} {glyph.glyph_id}'.encode())
-        line('Width:', str(glyph.width).encode())
-        if glyph.vertical_width is not None:
-            line('VWidth:', str(glyph.vertical_width).encode())
-        if glyph.alternate_unicodes:
-            line(
-                'AltUni2:',
-                b' '.join(
-                    f'{alt.unicode:06x}.{alt.variation_selector & 0xFFFFFFFF:06x}.{alt.font_id:x}'.encode()
-                    for alt in glyph.alternate_unicodes
-                ),
-            )
-        if font.multilayer:
-            if glyph.layer_count is not None:
-                line('LayerCount:', str(glyph.layer_count).encode())
-        elif font.version not in ('1.0', '2.0'):
-            line('LayerCount:', str(len(font.layer_infos)).encode())
-        result.append(records(glyph.records))
-        for item in glyph.payloads:
-            if item.keyword != 'TtfInstrs:':
-                raise SfdValidationError('glyph-level payload must be TtfInstrs')
-            result.append(binary(item))
-        for layer in glyph.layers:
-            if font.multilayer and layer.index > 0:
-                from sfdfont._paint import encode_paint
-
-                line('Layer:', encode_paint(layer.index, layer.paint))
-            else:
+    if font.subfonts:
+        line('BeginSubFonts:', f'{len(font.subfonts)} {font.encoding_size}'.encode())
+        for subfont in font.subfonts:
+            result.append(_dump_body(subfont, cid_child=True))
+        line('EndSubFonts')
+    else:
+        line('BeginChars:', f'{font.encoding_size} {-1 if cid_child else len(font.glyphs)}'.encode())
+        next_gid = 0
+        for glyph in font.glyphs:
+            if glyph.glyph_id == 65535 and next_gid != 65535:
+                raise SfdValidationError('glyph ID 65535 is reserved for the next implicit ID in SFD')
+            next_gid = max(next_gid, glyph.glyph_id + 1)
+            line('StartChar:', quote(glyph.name))
+            line('Encoding:', f'{glyph.encoding} {glyph.unicode} {glyph.glyph_id}'.encode())
+            line('Width:', str(glyph.width).encode())
+            if glyph.vertical_width is not None:
+                line('VWidth:', str(glyph.vertical_width).encode())
+            if glyph.alternate_unicodes:
                 line(
-                    'Back' if layer.index == 0 else 'Fore' if layer.index == 1 else 'Layer:',
-                    str(layer.index).encode() if layer.index > 1 else b'',
+                    'AltUni2:',
+                    b' '.join(
+                        f'{alt.unicode:06x}.{alt.variation_selector & 0xFFFFFFFF:06x}.{alt.font_id:x}'.encode()
+                        for alt in glyph.alternate_unicodes
+                    ),
                 )
-            result.append(splines(layer.contours))
-            for ref in layer.references:
-                value = b' '.join(
-                    [
-                        str(ref.target).encode(),
-                        str(ref.unicode).encode(),
-                        b'S' if ref.selected else b'N',
-                        *(scalar(v) for v in ref.transform),
-                        str(ref.flags).encode(),
-                    ]
-                )
-                if ref.point_match is not None:
-                    value += f' {ref.point_match[0]} {ref.point_match[1]}'.encode()
-                    if ref.point_match_outdated:
-                        value += b' O'
-                line('Ref:' if ref.encoded else 'Refer:', value)
-            for item in layer.images:
-                if item.keyword not in ('Image:', 'Image2:'):
-                    raise SfdValidationError('layer image must be Image or Image2')
-                if item.keyword == 'Image2:' and font.version != '3.2':
-                    raise SfdValidationError('Image2 output requires SFD 3.2')
+            if font.multilayer:
+                if glyph.layer_count is not None:
+                    line('LayerCount:', str(glyph.layer_count).encode())
+            elif font.version not in ('1.0', '2.0'):
+                line('LayerCount:', str(len(font.layer_infos)).encode())
+            result.append(records(glyph.records))
+            for item in glyph.payloads:
+                if item.keyword != 'TtfInstrs:':
+                    raise SfdValidationError('glyph-level payload must be TtfInstrs')
                 result.append(binary(item))
-            result.append(records(layer.records))
-        line('EndChar')
-    line('EndChars')
+            for layer in glyph.layers:
+                if font.multilayer and layer.index > 0:
+                    from sfdfont._paint import encode_paint
+
+                    line('Layer:', encode_paint(layer.index, layer.paint))
+                else:
+                    line(
+                        'Back' if layer.index == 0 else 'Fore' if layer.index == 1 else 'Layer:',
+                        str(layer.index).encode() if layer.index > 1 else b'',
+                    )
+                result.append(splines(layer.contours))
+                for ref in layer.references:
+                    value = b' '.join(
+                        [
+                            str(ref.target).encode(),
+                            str(ref.unicode).encode(),
+                            b'S' if ref.selected else b'N',
+                            *(scalar(v) for v in ref.transform),
+                            str(ref.flags).encode(),
+                        ]
+                    )
+                    if ref.point_match is not None:
+                        value += f' {ref.point_match[0]} {ref.point_match[1]}'.encode()
+                        if ref.point_match_outdated:
+                            value += b' O'
+                    line('Ref:' if ref.encoded else 'Refer:', value)
+                for item in layer.images:
+                    if item.keyword not in ('Image:', 'Image2:'):
+                        raise SfdValidationError('layer image must be Image or Image2')
+                    if item.keyword == 'Image2:' and font.version != '3.2':
+                        raise SfdValidationError('Image2 output requires SFD 3.2')
+                    result.append(binary(item))
+                result.append(records(layer.records))
+            line('EndChar')
+        line('EndChars')
     for strike in font.bitmap_strikes:
-        capacity = max((glyph.glyph_id for glyph in font.glyphs), default=-1) + 1
+        bitmap_glyphs = list(font.iter_glyphs())
+        capacity = max((glyph.glyph_id for glyph in bitmap_glyphs), default=-1) + 1
         value = f'{strike.pixelsize} {capacity} {strike.ascent} {strike.descent} {strike.depth}'.encode()
         if strike.foundry is not None:
             foundry = plain(strike.foundry)
@@ -281,5 +297,5 @@ def _dump_body(font) -> bytes:
         line('EndBitmapFont')
     for encoding, target in font.encoding_aliases.items():
         line('DupEnc:', f'{encoding} {target}'.encode())
-    line('EndSplineFont')
+    line('EndSubSplineFont' if cid_child else 'EndSplineFont')
     return b''.join(result)
