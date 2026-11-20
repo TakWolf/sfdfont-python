@@ -71,7 +71,9 @@ def binary(item) -> bytes:
     if b'\n' in item.parameters or b'\r' in item.parameters or b'\0' in item.parameters:
         raise SfdValidationError('invalid binary header')
     data = plain(item.keyword) + b' ' + item.parameters + b'\n' + encode_ascii85(item.data)
-    data += b'\n' + plain(item.terminator) + b'\n'
+    data += b'\n'
+    if item.terminator:
+        data += plain(item.terminator) + b'\n'
     try:
         reader = Reader(data)
         parsed = payload(reader, reader.word())
@@ -181,8 +183,8 @@ def _dump_body(font, *, cid_child: bool = False) -> bytes:
             line('Layer:', value)
     result.append(records(meta.records))
     for item in font.payloads:
-        if item.keyword != 'TtfTable:':
-            raise SfdValidationError('font-level payload must be TtfTable')
+        if item.keyword not in ('TtfTable:', 'BeginSubrs:'):
+            raise SfdValidationError('font-level payload must be TtfTable or BeginSubrs')
         result.append(binary(item))
     if font.guidelines:
         line('GridOrder2:', str(int(font.grid_quadratic)).encode())
@@ -221,8 +223,8 @@ def _dump_body(font, *, cid_child: bool = False) -> bytes:
                 line('LayerCount:', str(len(font.layer_infos)).encode())
             result.append(records(glyph.records))
             for item in glyph.payloads:
-                if item.keyword != 'TtfInstrs:':
-                    raise SfdValidationError('glyph-level payload must be TtfInstrs')
+                if item.keyword not in ('TtfInstrs:', 'OrigType1:'):
+                    raise SfdValidationError('glyph-level payload must be TtfInstrs or OrigType1')
                 result.append(binary(item))
             for layer in glyph.layers:
                 if font.multilayer and layer.paint is not None:

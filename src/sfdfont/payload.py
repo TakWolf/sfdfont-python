@@ -9,6 +9,8 @@ class SfdPayload:
 
     Image data is retained, including old palette/RLE data; it is not rendered.
     TrueType instructions and tables are retained, not executed or assembled.
+    Obsolete OrigType1/BeginSubrs blocks have an empty terminator; subroutine
+    header lengths are normalized and the decoded bytes remain concatenated.
     """
 
     keyword: str

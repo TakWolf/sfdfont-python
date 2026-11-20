@@ -1,16 +1,31 @@
 from sfdfont._parser import integer, real
 from sfdfont._reader import Reader
+from sfdfont.error import SfdLimitError
 from sfdfont.payload import SfdPayload
 
 
 def payload(reader: Reader, key: str) -> SfdPayload:
+    if key == 'BeginSubrs:':
+        count = integer(reader.word())
+        if count < 0:
+            reader.fail('negative Type 1 subroutine count')
+        if count > reader.limits.max_bytes:
+            reader.fail('Type 1 subroutine count exceeds document budget', SfdLimitError)
+        lengths = []
+        for _ in range(count):
+            length = integer(reader.word())
+            if length < 0:
+                reader.fail('negative Type 1 subroutine length')
+            lengths.append(length)
+        parameters = b' '.join(str(value).encode() for value in [count, *lengths])
+        return SfdPayload(key, parameters, reader.ascii85(sum(lengths)), '')
     parameters = reader.line()
     fields = parameters.split()
-    if key == 'TtfInstrs:':
+    if key in ('TtfInstrs:', 'OrigType1:'):
         if len(fields) != 1:
-            reader.fail('invalid TtfInstrs header')
+            reader.fail(f'invalid {key} header')
         length = integer(fields[0])
-        terminator = 'EndTtf'
+        terminator = 'EndTtf' if key == 'TtfInstrs:' else ''
     elif key == 'TtfTable:':
         # Tags are four literal bytes and can include spaces, e.g. "cvt ".
         if len(parameters) < 5:
@@ -38,6 +53,6 @@ def payload(reader: Reader, key: str) -> SfdPayload:
     else:
         reader.fail('unknown binary payload')
     data = reader.ascii85(length)
-    if reader.word() != terminator:
+    if terminator and reader.word() != terminator:
         reader.fail(f'missing {terminator}')
     return SfdPayload(key, parameters, data, terminator)

@@ -164,6 +164,10 @@ def record(reader: Reader, key: str) -> SfdRecord:
         'BDFChar:',
         'BDFRefChar:',
         'DupEnc:',
+        'BeginSubrs:',
+        'OrigType1:',
+        'TtfInstrs:',
+        'TtfTable:',
         'FillGradient:',
         'StrokeGradient:',
         'FillPattern:',
@@ -423,7 +427,7 @@ def glyph(reader: Reader, font: SfdFont, *, cid_child: bool = False) -> SfdGlyph
             if key != 'SplineSet':
                 reader.pos -= len(key)
             current.contours.extend(spline_set(reader))
-        elif key in ('Image:', 'Image2:', 'TtfInstrs:'):
+        elif key in ('Image:', 'Image2:', 'TtfInstrs:', 'OrigType1:'):
             from sfdfont._binary import payload
 
             item = payload(reader, key)
@@ -547,7 +551,7 @@ def _parse_font(reader: Reader, version: str | None = None, *, cid_child: bool =
             font.encoding_aliases[encoding] = target
         elif seen_chars:
             reader.fail(f'unsupported post-glyph record {key}', SfdUnsupportedError)
-        elif key == 'TtfTable:':
+        elif key in ('TtfTable:', 'BeginSubrs:'):
             from sfdfont._binary import payload
 
             font.payloads.append(payload(reader, key))

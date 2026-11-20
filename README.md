@@ -208,7 +208,11 @@ using an upstream test font.
 - Bitmap strikes with 1/2/4/8-bit sample depths, properties and bitmap references.
   Grayscale data uses one byte per sample; monochrome rows use packed bits.
 - Old Image and PNG Image2 payloads, TrueType binary tables and instructions are
-  retained as bytes. Images are not rendered and instructions are not executed.
+  retained as bytes. Obsolete `OrigType1:` charstrings and `BeginSubrs:` subroutines
+  are also retained in `glyph.payloads` and `font.payloads`, respectively. These
+  blocks use an empty payload terminator and stop at their declared decoded length;
+  subroutine counts/lengths are normalized in the header. Images are not rendered
+  and instructions/charstrings are not executed.
 - Editable lookup definitions, contextual/chained/reverse substitution and
   positioning, horizontal/vertical kerning classes (legacy, version 2 and version 3),
   and AAT state machines. Glyph positioning, substitutions, pair kerning, ligature
