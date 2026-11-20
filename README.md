@@ -317,6 +317,30 @@ The library preserves escaped name bytes on roundtrip. FontForge 20251009 drops
 octal-escaped Mac name bytes when importing SFD; names using plain ASCII without
 escapes avoid this FontForge limitation.
 
+### Edit OpenType feature names
+
+`SfdFeatureNames(tag, names, trailer=None)` describes an `OtfFeatName:` record.
+Each `SfdFeatureName` contains a Windows language ID and a label. Simple labels
+work for stylistic sets and historical character variants. Extended `cv` labels
+also contain `tooltip`, `sample` and a counted `parameters` list; an empty list
+is distinct from an omitted list.
+
+```python
+from sfdfont import SfdFeatureName, SfdFeatureNames
+
+labels = SfdFeatureNames('ss01', [SfdFeatureName(0x0409, 'Round a')])
+feature_name_record = labels.to_record()
+```
+
+Use explicit `from_record()` / `to_record()` replacement in `font.metadata.records`.
+Tags, language order, parameter counts and the reserved character-variant trailer
+remain protected while opaque dependencies are retained. Labels, tooltips, sample
+text and existing parameter names can be edited. The trailer is preserved without
+interpreting it as character mappings. See `examples/create_feature_names.py`.
+
+FontForge 20251009 only retains simple character-variant labels on import;
+extended fields require a newer FontForge implementation.
+
 ### Edit MATH data
 
 MATH constants and glyph metrics use `SfdMathValue`; assemblies use
@@ -406,6 +430,8 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
 - Optical DesignSize, optional ranges/style IDs and multilingual style names.
 - Editable OS/2, PFM and hhea numeric metrics, styles, offset flags and legacy aliases.
 - PANOSE byte values, OS/2 Unicode/code-page bitmasks and fixed four-byte vendor IDs.
+- OpenType feature labels and extended character-variant names, with language and
+  parameter count checks and explicit preservation of reserved trailer text.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.

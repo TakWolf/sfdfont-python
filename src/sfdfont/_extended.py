@@ -2,7 +2,7 @@ from sfdfont._reader import Reader
 from sfdfont.record import SfdRecord
 
 BASE_KEYS = {'BaseHoriz:', 'BaseVert:'}
-EXTENDED_KEYS = BASE_KEYS | {'Justify:', 'MacFeat:'}
+EXTENDED_KEYS = BASE_KEYS | {'Justify:', 'MacFeat:', 'OtfFeatName:'}
 
 
 def base_record(reader: Reader, key: str) -> SfdRecord:

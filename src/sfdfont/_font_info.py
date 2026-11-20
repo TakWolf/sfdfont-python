@@ -1,3 +1,4 @@
+from sfdfont._feature_names import decode_feature_names
 from sfdfont._gasp import decode_gasp
 from sfdfont._metrics import SCALAR_KEYS, decode_metric, metric_key
 from sfdfont._os2 import OS2_KEYS, decode_os2, vendor_record
@@ -5,10 +6,12 @@ from sfdfont._size import decode_design_size
 from sfdfont.error import SfdParseError, SfdValidationError
 from sfdfont.record import SfdRecord
 
-INFO_KEYS = SCALAR_KEYS | OS2_KEYS | {'GaspTable:', 'DesignSize:'}
+INFO_KEYS = SCALAR_KEYS | OS2_KEYS | {'GaspTable:', 'DesignSize:', 'OtfFeatName:'}
 
 
 def decode_info(item):
+    if item.keyword == 'OtfFeatName:':
+        return decode_feature_names(item)
     if item.keyword == 'GaspTable:':
         return decode_gasp(item)
     if item.keyword == 'DesignSize:':
@@ -34,6 +37,8 @@ def validate_info(records):
         for item in records:
             if item.keyword in INFO_KEYS:
                 key = metric_key(item.keyword)
+                if item.keyword == 'OtfFeatName:':
+                    key = (key, decode_feature_names(item).tag)
                 if key in seen:
                     raise SfdValidationError(f'duplicate font information record {item.keyword}')
                 seen.add(key)

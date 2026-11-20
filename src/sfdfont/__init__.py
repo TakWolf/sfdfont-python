@@ -5,6 +5,7 @@ from sfdfont.baselines import SfdBaselineExtent, SfdBaselines, SfdBaselineScript
 from sfdfont.bitmap import SfdBitmapGlyph, SfdBitmapProperty, SfdBitmapReference, SfdBitmapStrike
 from sfdfont.cid import SfdCidInfo
 from sfdfont.error import SfdError, SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
+from sfdfont.feature_names import SfdFeatureName, SfdFeatureNames
 from sfdfont.font import SfdFont
 from sfdfont.gasp import SfdGaspRange, SfdGaspTable
 from sfdfont.glyph import SfdAlternateUnicode, SfdGlyph
@@ -70,6 +71,8 @@ from sfdfont.tables import SfdPrivateDict, SfdPrivateEntry, SfdShortTable, SfdSh
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdFeatureName',
+    'SfdFeatureNames',
     'SfdPanose',
     'SfdOs2Mask',
     'SfdOs2Vendor',

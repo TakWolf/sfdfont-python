@@ -238,6 +238,10 @@ def layout_identity(font):
             from sfdfont._mac_features import mac_features_identity
 
             result.append(mac_features_identity(record))
+        elif record.keyword == 'OtfFeatName:':
+            from sfdfont._feature_names import feature_names_identity
+
+            result.append(feature_names_identity(record))
         elif record.keyword == 'Lookup:':
             lookup = SfdLookup.from_record(record)
             result.append(('Lookup:', lookup.name, tuple(sub.name for sub in lookup.subtables)))
