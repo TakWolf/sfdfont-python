@@ -42,14 +42,18 @@ def test_language_name_prefix_container_semantics():
     assert SfdLanguageNames(1033).style_map_family_names is not SfdLanguageNames(1033).style_map_family_names
 
 
-def test_prefix_order_and_trailing_record_order_are_preserved(assets_dir):
+@pytest.mark.parametrize('line_ending', [b'\n', b'\r\n'], ids=['lf', 'crlf'])
+def test_prefix_order_and_trailing_record_order_are_preserved(assets_dir, line_ending):
     source = assets_dir.joinpath('fontforge', 'BoxesAndBounds.sfd').read_bytes()
+    source = source.replace(b'\r\n', b'\n').replace(b'\n', line_ending)
+    target = b'LangName: 1033' + line_ending
+    assert source.count(target) == 1
     data = (
         b'StyleMapFamilyName: "First"\nStyleMapFamilyName: "Second"\nLangName: 1033\n'
         b'StyleMapFamilyName: "Trailing one"\nCustomBefore: 1\n'
         b'StyleMapFamilyName: "Trailing two"\nCustomAfter: 2\n'
     )
-    font = SfdFont.parse(source.replace(b'LangName: 1033\n', data, 1))
+    font = SfdFont.parse(source.replace(target, data.replace(b'\n', line_ending), 1))
     names = font.metadata.language_names[0]
     assert [item.name for item in names.style_map_family_names] == ['First', 'Second']
     assert names.names == []
@@ -123,11 +127,17 @@ def test_plain_name_nul_and_wrong_prefix_kind_rejected():
         font.validate()
 
 
-def test_plain_and_quoted_prefixes_remain_distinct(assets_dir):
+@pytest.mark.parametrize('line_ending', [b'\n', b'\r\n'], ids=['lf', 'crlf'])
+def test_plain_and_quoted_prefixes_remain_distinct(assets_dir, line_ending):
     source = assets_dir.joinpath('fontforge', 'BoxesAndBounds.sfd').read_bytes()
+    source = source.replace(b'\r\n', b'\n').replace(b'\n', line_ending)
+    target = b'LangName: 1033' + line_ending
+    assert source.count(target) == 1
     source = source.replace(
-        b'LangName: 1033\n',
-        b'StyleMapFamilyName: Plain Family\nStyleMapFamilyName: "Quoted Family"\nLangName: 1033\n',
+        target,
+        b'StyleMapFamilyName: Plain Family\nStyleMapFamilyName: "Quoted Family"\nLangName: 1033\n'.replace(
+            b'\n', line_ending
+        ),
         1,
     )
     font = SfdFont.parse(source)
