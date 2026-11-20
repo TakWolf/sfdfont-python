@@ -28,6 +28,12 @@ from sfdfont.hints import (
     SfdStemHint,
     SfdStemHints,
 )
+from sfdfont.justification import (
+    SfdJustification,
+    SfdJustificationLanguage,
+    SfdJustificationPriority,
+    SfdJustificationScript,
+)
 from sfdfont.layer import SfdLayer, SfdLayerInfo
 from sfdfont.layout import (
     SfdContext,
@@ -59,6 +65,10 @@ from sfdfont.tables import SfdPrivateDict, SfdPrivateEntry, SfdShortTable, SfdSh
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdJustificationPriority',
+    'SfdJustificationLanguage',
+    'SfdJustificationScript',
+    'SfdJustification',
     'SfdBaselineExtent',
     'SfdBaselineScript',
     'SfdBaselines',

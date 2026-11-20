@@ -10,13 +10,17 @@ from sfdfont.error import SfdValidationError
 
 
 def protected_records(items):
-    return [
-        r
-        for r in items
-        if r.keyword
-        not in GLYPH_MATH_KEYS | GLYPH_LAYOUT_KEYS | LAYOUT_KEYS | LEGACY_KEYS | HINT_KEYS | TABLE_KEYS | BASE_KEYS
-        and not math_constant(r.keyword)
-    ]
+    editable = (
+        GLYPH_MATH_KEYS
+        | GLYPH_LAYOUT_KEYS
+        | LAYOUT_KEYS
+        | LEGACY_KEYS
+        | HINT_KEYS
+        | TABLE_KEYS
+        | BASE_KEYS
+        | {'Justify:'}
+    )
+    return [r for r in items if r.keyword not in editable and not math_constant(r.keyword)]
 
 
 def check_preservation(font) -> None:

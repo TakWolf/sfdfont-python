@@ -242,6 +242,29 @@ While opaque dependencies are retained, tags, script order and extent hierarchy
 remain protected; coordinates, ranges and the default baseline can be edited.
 See `examples/create_baselines.py` for a complete example.
 
+### Edit justification
+
+`SfdJustification` contains `SfdJustificationScript` objects with optional extender
+glyph lists and `SfdJustificationLanguage` objects. Each language has an ordered
+list of `SfdJustificationPriority` objects with six optional lookup-name lists:
+`enable_shrink`, `disable_shrink`, `max_shrink`, `enable_extend`, `disable_extend`
+and `max_extend`. `None` omits a list; `[]` retains an explicitly empty list.
+
+```python
+from sfdfont import SfdJustification
+
+justification = SfdJustification.from_record(justification_record)
+justification.scripts[0].languages[0].priorities[0].max_extend = ['expand']
+updated_record = justification.to_record()
+```
+
+Replace the entry in `font.metadata.records` to apply changes. Extenders must name
+existing glyphs and actions must name existing lookups. Maximum shrink/extend
+lists require OpenType positioning lookups. Script/language tags and their order
+remain protected while opaque dependencies are retained; priorities, actions and
+extender membership can be edited. No justification algorithm is executed.
+See `examples/create_justification.py` for a complete example.
+
 ### Edit MATH data
 
 MATH constants and glyph metrics use `SfdMathValue`; assemblies use
@@ -357,9 +380,9 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
   carets and anchors also have editable models. Separate legacy models retain
   SFD 1.0 bindings and permit numeric layout edits. Lookup ownership, glyph references and dependency cycles
   are checked. Shaping is outside the scope of the library.
-- BASE baselines and language/feature extents have editable models. JSTF
-  justification and Mac feature names are structurally checked and retained as
-  records. Editable MATH models cover
+- BASE baselines, language/feature extents and JSTF justification have editable
+  models, including extender glyph and lookup dependency checks. Mac feature names
+  are structurally checked and retained as records. Editable MATH models cover
   constants, italic/accent corrections, size variants, glyph assemblies and all
   four corner-kern tables, with device adjustments and glyph dependency checks.
 - Type 3 fonts through `font.multilayer`, per-glyph `layer_count` and `layer.paint`.

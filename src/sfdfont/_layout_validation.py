@@ -4,7 +4,6 @@ from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
 from sfdfont._glyph_layout import decode as decode_glyph_layout
 from sfdfont._layout import AAT_KEYS, CONTEXT_KEYS, KERN_CLASS_KEYS
 from sfdfont._legacy_layout import LEGACY_KERN_KEYS, LEGACY_PST_KEYS, decode_anchor_classes, decode_pairs, decode_pst
-from sfdfont._reader import Reader
 from sfdfont.aat import SfdStateMachine
 from sfdfont.error import SfdParseError, SfdValidationError
 from sfdfont.glyph_layout import SfdAnchorClasses
@@ -156,15 +155,21 @@ def validate_layout(font) -> None:
                         else:
                             need(target in definitions, f'undefined nested AAT lookup tag {target!r}')
         cycles(graph, 'layout')
+        jstf_seen = False
         for record in font.metadata.records:
             if record.keyword == 'Justify:':
-                from sfdfont._extended import read_justify
+                from sfdfont._justification import decode_justification, justification_references
 
-                extender_glyphs, jstf_lookups = read_justify(Reader(record.value))
+                need(not jstf_seen, 'duplicate JSTF table')
+                jstf_seen = True
+                extender_glyphs, jstf_lookups = justification_references(decode_justification(record))
                 check_names(extender_glyphs)
                 for target, maximum in jstf_lookups:
                     need(target in lookup_names, f'undefined JSTF lookup {target!r}')
-                    need(not maximum or lookup_names[target].lookup_type >= 256, 'JSTF maximum requires GPOS lookup')
+                    need(
+                        not maximum or 257 <= lookup_names[target].lookup_type <= 265,
+                        'JSTF maximum requires GPOS lookup',
+                    )
         for kern in kerns:
             check_names(kern.first_classes)
             check_names(kern.second_classes)
@@ -223,6 +228,10 @@ def layout_identity(font):
             from sfdfont._baselines import baseline_identity
 
             result.append(baseline_identity(record))
+        elif record.keyword == 'Justify:':
+            from sfdfont._justification import justification_identity
+
+            result.append(justification_identity(record))
         elif record.keyword == 'Lookup:':
             lookup = SfdLookup.from_record(record)
             result.append(('Lookup:', lookup.name, tuple(sub.name for sub in lookup.subtables)))
