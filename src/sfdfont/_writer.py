@@ -91,6 +91,19 @@ def splines(contours) -> bytes:
                 if point.next_cp_index is not None:
                     flags += b',' + str(point.next_cp_index).encode()
             result.append(b' '.join([*values, point.command.encode(), flags]) + b'\n')
+            if point.name is not None:
+                result.append(b'NamedP: ' + quote(point.name) + b'\n')
+        if contour.spiro:
+            result.append(b'Spiro\n')
+            for point in contour.spiro:
+                result.append(b' '.join((scalar(point.x), scalar(point.y), point.kind.encode())) + b'\n')
+            result.append(b'EndSpiro\n')
+        if contour.name is not None:
+            result.append(b'Named: ' + quote(contour.name) + b'\n')
+        if contour.flags:
+            result.append(f'PathFlags: {contour.flags}\n'.encode())
+        if contour.start_offset:
+            result.append(f'PathStart: {contour.start_offset}\n'.encode())
     return b''.join([*result, b'EndSplineSet\n'])
 
 

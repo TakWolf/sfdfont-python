@@ -47,8 +47,20 @@ def cycles(graph: dict, name: str) -> None:
 
 def contours(items) -> None:
     for contour in items:
+        number(contour.flags, 'path flags', 0, 1)
+        number(contour.start_offset, 'path start offset', 0)
+        if contour.name is not None:
+            check(isinstance(contour.name, str) and '\0' not in contour.name, 'invalid contour name')
+        for index, point in enumerate(contour.spiro):
+            check(math.isfinite(point.x) and math.isfinite(point.y), 'nonfinite Spiro coordinate')
+            check(point.kind in ('{', '}', 'v', 'o', 'c', '[', ']', 'z', 'a', 'h'), 'invalid Spiro point kind')
+            check(point.kind != 'z' or index == len(contour.spiro) - 1, 'Spiro end marker must be last')
+            check(point.kind != '{' or index == 0, 'open Spiro marker must be first')
+        check(not contour.spiro or contour.spiro[-1].kind == 'z', 'Spiro data requires an end marker')
         check(bool(contour.points) and contour.points[0].command == 'm', 'contour must begin with m')
         for index, point in enumerate(contour.points):
+            if point.name is not None:
+                check(isinstance(point.name, str) and '\0' not in point.name, 'invalid point name')
             check(point.command in ('m', 'l', 'c') and (point.command != 'm' or index == 0), 'invalid contour command')
             check(len(point.controls) == (4 if point.command == 'c' else 0), 'invalid control coordinates')
             check(

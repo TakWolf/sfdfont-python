@@ -20,7 +20,7 @@ from sfdfont.glyph import SfdAlternateUnicode, SfdGlyph
 from sfdfont.layer import SfdLayer, SfdLayerInfo
 from sfdfont.limits import SfdReadLimits
 from sfdfont.metadata import SfdLanguageNames
-from sfdfont.outline import SfdContour, SfdPoint
+from sfdfont.outline import SfdContour, SfdPoint, SfdSpiroPoint
 from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
 
@@ -168,6 +168,32 @@ def spline_set(reader: Reader, *, legacy: bool = False) -> list[SfdContour]:
             return contours
         if not key:
             reader.fail('unterminated spline set')
+        if key in ('Named:', 'NamedP:', 'PathFlags:', 'PathStart:', 'Spiro'):
+            if not contours or not contours[-1].points:
+                reader.fail('contour attributes require a preceding point')
+            contour = contours[-1]
+            if key == 'Named:':
+                contour.name = string(reader.line())
+            elif key == 'NamedP:':
+                contour.points[-1].name = string(reader.line())
+            elif key == 'PathFlags:':
+                contour.flags = integer(reader.line())
+            elif key == 'PathStart:':
+                contour.start_offset = integer(reader.line())
+            else:
+                while True:
+                    row = reader.line().split()
+                    if row == [b'EndSpiro']:
+                        break
+                    if not row and reader.pos < len(reader.data):
+                        continue
+                    if len(row) != 3 or row[2] not in (b'{', b'}', b'v', b'o', b'c', b'[', b']', b'z', b'a', b'h'):
+                        reader.fail('invalid or unterminated Spiro data')
+                    contour.spiro.append(SfdSpiroPoint(real(row[0]), real(row[1]), row[2].decode()))
+                    reader.point_count += 1
+                    if reader.point_count > reader.limits.max_points:
+                        reader.fail('max_points exceeded', SfdLimitError)
+            continue
         if key in _UNSUPPORTED:
             reader.fail(f'unsupported contour record {key}', SfdUnsupportedError)
         reader.pos = saved
