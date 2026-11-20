@@ -1,6 +1,6 @@
 [project]
 name = "sfdfont"
-version = "0.0.0"
+version = "0.0.1"
 description = "A pure Python library for FontForge Spline Font Database (SFD) files"
 readme = "README.md"
 license = "MIT"
