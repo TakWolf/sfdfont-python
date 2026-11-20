@@ -35,10 +35,8 @@ _TEXT_FIELDS = {
     'Encoding:': 'encoding',
 }
 _MULTILINE = {
-    'BeginPrivate:': 'EndPrivate',
     'TtInstrs:': 'EndTTInstrs',
     'TtTable:': 'EndTTInstrs',
-    'ShortTable:': 'EndShort',
 }
 _UNSUPPORTED = {
     'BeginSubFonts:',
@@ -122,6 +120,10 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    if key in ('BeginPrivate:', 'ShortTable:'):
+        from sfdfont._tables import private_record, short_table_record
+
+        return private_record(reader, key) if key == 'BeginPrivate:' else short_table_record(reader, key)
     if key == 'UndoRedoHistory':
         from sfdfont._history import history_record
 
@@ -199,18 +201,17 @@ def record(reader: Reader, key: str) -> SfdRecord:
                     if not reader.word():
                         reader.fail('truncated script language list')
         return SfdRecord(key, reader.data[start : reader.pos].strip())
+    start = reader.pos
     value = reader.line()
     if key in _MULTILINE:
         end = _MULTILINE[key]
-        lines = [value]
         while True:
             if reader.pos == len(reader.data):
                 reader.fail(f'unterminated {key}')
             line = reader.line()
-            lines.append(line)
             if line == end.encode():
                 break
-        value = b'\n'.join(lines)
+        value = reader.data[start : reader.pos].strip()
     return SfdRecord(key, value)
 
 

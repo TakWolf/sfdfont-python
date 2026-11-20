@@ -83,7 +83,11 @@ def validate(font, *, layout: bool = True) -> None:
     from sfdfont._extended import EXTENDED_KEYS
 
     def font_record(record) -> bool:
-        return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS or record.keyword.startswith('MATH:')
+        return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS | {
+            'BeginPrivate:',
+            'ShortTable:',
+            'TtTable:',
+        } or record.keyword.startswith('MATH:')
 
     if font.subfonts or font.cid is not None:
         from sfdfont._family import validate_cid
