@@ -110,13 +110,22 @@ def splines(contours) -> bytes:
 
 def dump_font(font) -> bytes:
     font.validate()
+    if font.multiple_master is not None:
+        from sfdfont._family import dump_mm
+
+        body = dump_mm(font)
+    else:
+        body = _dump_body(font)
+    return b'SplineFontDB: ' + font.version.encode() + b'\n' + body
+
+
+def _dump_body(font) -> bytes:
     check_preservation(font)
     result: list[bytes] = []
 
     def line(key: str, value: bytes = b'') -> None:
         result.append(key.encode() + (b' ' + value if value else b'') + b'\n')
 
-    line('SplineFontDB:', font.version.encode())
     meta = font.metadata
     if font.multilayer:
         line('MultiLayer:', b'1')

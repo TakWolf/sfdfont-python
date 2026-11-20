@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from sfdfont import SfdFont, SfdParseError, SfdUnsupportedError
+from sfdfont import SfdFont, SfdParseError
 
 
 @pytest.mark.parametrize(
     ('font_file_name', 'error_type', 'message'),
     [
-        ('CaslonMM.sfd', SfdUnsupportedError, 'MMCounts:'),
+        ('CaslonMM.sfd', SfdParseError, 'duplicate glyph ID'),
         ('FormalScript.sfd', SfdParseError, 'duplicate glyph ID'),
         ('OmittedCharBugs.sfd', SfdParseError, 'dangling glyph reference'),
         ('SFDBitmapParsing.sfd', SfdParseError, 'BeginChars count'),

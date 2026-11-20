@@ -43,6 +43,13 @@ _UNSUPPORTED = {
     'BeginSubFonts:',
     'BeginMMFonts:',
     'MMCounts:',
+    'MMAxis:',
+    'MMPositions:',
+    'MMWeights:',
+    'MMAxisMap:',
+    'MMNamedInstance:',
+    'MMCDV:',
+    'MMNDV:',
     'SplineFontDB:',
     'Multilayer:',
     'MultiLayer:',
@@ -355,13 +362,19 @@ def parse_font(stream: bytes | bytearray | BinaryIO, limits: SfdReadLimits | Non
     reader = Reader(stream, limits)
     reader.point_count = 0
     reader.next_gid = 0
+    reader.glyph_count = 0
     try:
         font = _parse_font(reader)
+        reader.whitespace()
+        if reader.pos != len(reader.data):
+            reader.fail('unexpected content after font')
         try:
             font.validate()
         except SfdValidationError as error:
             reader.fail(str(error))
-        font._snapshot = font.deepcopy()
+        from sfdfont._family import snapshot_family
+
+        snapshot_family(font)
         return font
     except SfdParseError as error:
         if error.offset is not None:
@@ -370,13 +383,16 @@ def parse_font(stream: bytes | bytearray | BinaryIO, limits: SfdReadLimits | Non
     raise AssertionError
 
 
-def _parse_font(reader: Reader) -> SfdFont:
-    if reader.word() != 'SplineFontDB:':
-        reader.fail('not a FontForge SFD file')
-    version = decode_text(reader.line())
+def _parse_font(reader: Reader, version: str | None = None) -> SfdFont:
+    nested = version is not None
+    if not nested:
+        if reader.word() != 'SplineFontDB:':
+            reader.fail('not a FontForge SFD file')
+        version = decode_text(reader.line())
     if version not in ('1.0', '2.0', '3.0', '3.1', '3.2'):
         reader.fail(f'unsupported SFD version {version!r}', SfdUnsupportedError)
     font = SfdFont(version=version)
+    reader.next_gid = 0
     declared_layers = 2
     explicit_layers = False
     seen_chars = False
@@ -385,14 +401,17 @@ def _parse_font(reader: Reader) -> SfdFont:
         if key == 'EndSplineFont':
             if not seen_chars:
                 reader.fail('missing BeginChars')
-            reader.whitespace()
-            if reader.pos != len(reader.data):
-                reader.fail('unexpected content after EndSplineFont')
             if len(font.layer_infos) != declared_layers:
                 reader.fail('LayerCount differs from layer definitions')
             return font
         if not key:
             reader.fail('missing EndSplineFont')
+        if key == 'MMCounts:' and not nested:
+            from sfdfont._family import parse_mm
+
+            if seen_chars or font != SfdFont(version=version):
+                reader.fail('MMCounts must precede font metadata')
+            return parse_mm(reader, version)
         if key == 'BeginChars:':
             if seen_chars:
                 reader.fail('duplicate BeginChars')
@@ -411,9 +430,10 @@ def _parse_font(reader: Reader) -> SfdFont:
                     break
                 if key != 'StartChar:':
                     reader.fail('expected StartChar or EndChars')
-                if len(font.glyphs) >= reader.limits.max_glyphs:
+                if reader.glyph_count >= reader.limits.max_glyphs:
                     reader.fail('max_glyphs exceeded', SfdLimitError)
                 font.glyphs.append(glyph(reader, font))
+                reader.glyph_count += 1
             if version != '1.0' and len(font.glyphs) != count:
                 reader.fail('BeginChars count differs from actual glyph count')
         elif key == 'BitmapFont:' and seen_chars:

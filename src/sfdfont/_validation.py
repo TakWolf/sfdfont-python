@@ -80,6 +80,10 @@ def contours(items) -> None:
 
 
 def validate(font) -> None:
+    if font.multiple_master is not None:
+        from sfdfont._family import validate_mm
+
+        validate_mm(font)
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
     for record in font.metadata.records:
         check(

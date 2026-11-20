@@ -21,8 +21,13 @@ from sfdfont.paint import SfdPaint
 from sfdfont.payload import SfdPayload
 from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
+from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdAxisMap',
+    'SfdMacName',
+    'SfdMultipleMaster',
+    'SfdNamedInstance',
     'SfdPaint',
     'SfdSpiroPoint',
     'SfdLookupSubtable',

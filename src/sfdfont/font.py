@@ -12,6 +12,7 @@ from sfdfont.limits import SfdReadLimits
 from sfdfont.metadata import SfdMetadata
 from sfdfont.outline import SfdContour
 from sfdfont.payload import SfdPayload
+from sfdfont.variation import SfdMultipleMaster
 
 
 class SfdFont:
@@ -27,6 +28,7 @@ class SfdFont:
     _snapshot: SfdFont | None
     encoding_aliases: dict[int, int]
     multilayer: bool
+    multiple_master: SfdMultipleMaster | None
 
     def __init__(
         self,
@@ -42,6 +44,7 @@ class SfdFont:
         _snapshot: SfdFont | None = None,
         encoding_aliases: dict[int, int] | None = None,
         multilayer: bool = False,
+        multiple_master: SfdMultipleMaster | None = None,
     ) -> None:
         self.version = version
         self.metadata = metadata if metadata is not None else SfdMetadata()
@@ -57,6 +60,7 @@ class SfdFont:
         self._snapshot = _snapshot
         self.encoding_aliases = encoding_aliases if encoding_aliases is not None else {}
         self.multilayer = multilayer
+        self.multiple_master = multiple_master
 
     def __copy__(self) -> SfdFont:
         return SfdFont(
@@ -72,6 +76,7 @@ class SfdFont:
             self._snapshot,
             self.encoding_aliases,
             self.multilayer,
+            self.multiple_master,
         )
 
     def __deepcopy__(self, memo: dict[int, Any]) -> SfdFont:
@@ -89,6 +94,7 @@ class SfdFont:
         copied._snapshot = deepcopy(self._snapshot, memo)
         copied.encoding_aliases = deepcopy(self.encoding_aliases, memo)
         copied.multilayer = deepcopy(self.multilayer, memo)
+        copied.multiple_master = deepcopy(self.multiple_master, memo)
         return copied
 
     def __eq__(self, other: object) -> bool:
@@ -106,6 +112,7 @@ class SfdFont:
             and self.grid_quadratic == other.grid_quadratic
             and self.encoding_aliases == other.encoding_aliases
             and self.multilayer == other.multilayer
+            and self.multiple_master == other.multiple_master
         )
 
     def __repr__(self) -> str:
@@ -121,7 +128,8 @@ class SfdFont:
             f'guidelines={self.guidelines!r}, '
             f'grid_quadratic={self.grid_quadratic!r}, '
             f'encoding_aliases={self.encoding_aliases!r}, '
-            f'multilayer={self.multilayer!r}'
+            f'multilayer={self.multilayer!r}, '
+            f'multiple_master={self.multiple_master!r}'
             f')'
         )
 
