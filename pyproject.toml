@@ -27,6 +27,7 @@ classifiers = [
 [dependency-groups]
 dev = [
     "pytest>=9.2.0",
+    "ruff>=0.17.6",
 ]
 
 [project.urls]
@@ -42,3 +43,19 @@ build-backend = "uv_build"
 addopts = [
     "--import-mode=importlib",
 ]
+
+[tool.ruff]
+line-length = 120
+force-exclude = true
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "B",
+]
+
+[tool.ruff.format]
+quote-style = "single"
