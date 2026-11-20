@@ -77,7 +77,7 @@ from sfdfont import SfdFont
 def main() -> None:
     font = SfdFont.load(ASSETS_DIR.joinpath('fontforge', 'Ambrosia.sfd'))
     print(font.metadata.font_name, font.version)
-    for glyph in font.glyphs:
+    for glyph in font.iter_glyphs():
         print(glyph.glyph_id, glyph.name, glyph.unicode, glyph.width)
     for strike in font.bitmap_strikes:
         print('Bitmap strike:', strike.pixelsize, strike.depth, len(strike.glyphs))
@@ -87,48 +87,115 @@ if __name__ == '__main__':
     main()
 ```
 
+### Edit layout
+
+```python
+from examples import ASSETS_DIR, BUILD_DIR
+from sfdfont import SfdFont, SfdKerningClass
+
+
+def main() -> None:
+    font = SfdFont.load(ASSETS_DIR.joinpath('fontforge', 'VKern.sfd'))
+    for index, record in enumerate(font.metadata.records):
+        if record.keyword in ('VKernClass:', 'VKernClass2:', 'VKernClass3:'):
+            kerning = SfdKerningClass.from_record(record)
+            kerning.offsets[1][1] -= 10
+            font.metadata.records[index] = kerning.to_record()
+            break
+    else:
+        raise ValueError('The example font has no vertical kerning classes')
+
+    outputs_dir = BUILD_DIR.joinpath('edit_layout')
+    outputs_dir.mkdir(parents=True, exist_ok=True)
+    output_path = outputs_dir.joinpath('VKern.sfd')
+    font.save(output_path)
+    print(output_path)
+
+
+if __name__ == '__main__':
+    main()
+```
+
+`SfdLookup`, `SfdContext`, `SfdKerningClass` and `SfdStateMachine` provide
+`from_record()` / `to_record()` conversions. Decoded objects are independent:
+replace the entry in `font.metadata.records` to apply changes. Likewise,
+`font.find_lookup(name)` returns an independent lookup; use `font.set_lookup()`
+to replace or append its definition.
+
 ## Supported formats and boundaries
 
-- Core single-font SFD structures in versions 1.0, 2.0, 3.0, 3.1 and 3.2.
+- SFD versions 1.0, 2.0, 3.0, 3.1 and 3.2, with standard-library-only runtime code.
 - Font names, language names, comments, SFD UTF-7, UTF-8 and legacy text fields.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.
+- Named points/contours, clipping path flags, path start offsets and Spiro control
+  points. Spiro coordinates are preserved; this library does not regenerate curves.
 - Glyph encodings, alternate Unicode/variation mappings, DupEnc encoding aliases,
   vector references and guideline contours. `encoding_aliases` maps additional
   encoding slots to glyph IDs; `find_glyph_by_encoding()` also searches these aliases.
+- Glyph state flags through `glyph.flags`. Newly constructed glyphs default to `W`
+  (explicit width), so FontForge retains blank glyphs such as spaces. Loaded flags,
+  including their absence, are preserved.
 - Bitmap strikes with 1/2/4/8-bit sample depths, properties and bitmap references.
   Grayscale data uses one byte per sample; monochrome rows use packed bits.
 - Old Image and PNG Image2 payloads, TrueType binary tables and instructions are
   retained as bytes. Images are not rendered and instructions are not executed.
-- Lookup definitions, contextual/chained/reverse substitution and positioning
-  records, horizontal/vertical kerning classes (legacy, version 2 and version 3),
-  and legacy table ordering are read using their counts, lengths and delimiters.
-  Their encoded contents are retained as `SfdRecord` values in `metadata.records`.
+- Editable lookup definitions, contextual/chained/reverse substitution and
+  positioning, horizontal/vertical kerning classes (legacy, version 2 and version 3),
+  and AAT state machines. Lookup ownership, glyph references and dependency cycles
+  are checked. Shaping is outside the scope of the library.
+- BASE baselines and language extents, JSTF justification, MATH constants/device
+  adjustments and Mac feature names are structurally checked and retained as records.
+- Type 3 fonts through `font.multilayer`, per-glyph `layer_count` and `layer.paint`.
+  `SfdPaint` stores fill/stroke settings, colours, opacity, pen transforms and dashes.
+  `SfdGradient` / `SfdGradientStop` and `SfdPattern` describe gradient and tiled
+  glyph brushes; pattern targets and drawing dependency cycles are checked.
+- Multiple Master families through `font.multiple_master`: axes, positions, weights,
+  axis maps, Apple named instances and instance fonts. The root `SfdFont` is the
+  default font; `multiple_master.instances` contains the masters. The library does
+  not interpolate outlines or recompute the default font when weights change.
+- CID containers through `font.cid` (registry, ordering, supplement and version)
+  and `font.subfonts`. CID layout is stored in the container; outline references
+  are checked within each subfont. `iter_glyphs()` and name/Unicode queries include
+  the subfonts in stored order. Encoding queries return the first matching subfont.
+- SFD 3.1/3.2 undo/redo history is retained in the corresponding layer's `records`,
+  with operation boundaries, nested outlines and binary payloads checked. Historical
+  points and payloads count toward read limits. Undo operations are not executed.
+- Counted Private dictionary values and ShortTable words are checked; significant
+  whitespace and embedded text in dictionary values are preserved.
 - Known terminated text blocks and ordinary additional records are retained without
-  interpreting their semantics. Pickled data is retained without unpickling.
+  interpreting their semantics. Pickled data and MM PostScript subroutines are
+  preserved without execution or unpickling.
 
-Layout records are preserved with structural checks; lookup dependencies are not
-resolved, and editable GSUB/GPOS models and shaping operations are not implemented.
-CID, Multiple Master, Type 3 multilayer paint data, Spiro, named contours/points and
-undo/redo blocks are not implemented. Versions 0/4, sfdir directories and asfd recovery files are not supported.
+Versions 0/4, sfdir directories and asfd recovery files are not supported.
 Unsupported structures raise `SfdUnsupportedError`; malformed structures raise
-`SfdParseError`. Accepting a version header does not imply every feature is supported.
+`SfdParseError`. Accepting a version header does not imply every extension is supported.
 
 Writing normalizes whitespace and numeric formatting; it does not promise
-byte-for-byte reproduction. Semantic roundtrips are tested. For loaded fonts that
-retain uninterpreted records or payloads, editing followed by writing is rejected
-with `SfdValidationError`. Removing such data explicitly permits supported edits;
-keep a source copy when that data matters. Fonts built entirely from supported
-models can be edited and saved directly.
+byte-for-byte reproduction. For loaded fonts retaining uninterpreted records or
+payloads, metadata text, glyph advances/flags, bitmap pixels, guidelines, paint
+settings and validated layout parameters can be edited. Glyph identities, outlines,
+layer structure and uninterpreted data remain protected when retained records may
+depend on them. Incompatible edits raise `SfdValidationError` before the destination
+file is opened. Explicitly removing dependent opaque data permits supported geometry
+edits; keep a source copy when that data matters.
 
 Duplicate glyph IDs/encoding slots, dangling/cyclic references and inconsistent
 bitmap dimensions are rejected. Some historical FontForge files rely on implicit
 repair and are therefore rejected. SFD 1.0 glyph counts are treated as historical
-capacity hints; later-version counts are checked against the actual glyph count.
+capacity hints; later-version counts are checked against the actual glyph count,
+except the explicit CID `-1` sentinel.
+
+The 29 original FontForge test fonts are retained under `assets/fontforge`.
+22 have semantic parse/dump and load/save conformance coverage. The other 7 are
+explicit rejection tests for duplicate IDs/encodings, dangling references or count
+mismatches; no samples are silently skipped or repaired. In particular, CaslonMM's
+family structure is supported, but its original duplicate IDs fail strict loading.
 
 `SfdReadLimits` configures document byte, glyph, point and cumulative binary-payload
-budgets. Exceeding a budget raises `SfdLimitError`, a subclass of `SfdParseError`.
+budgets. Glyph/point limits apply across a whole MM/CID document, including history
+points. Exceeding a budget raises `SfdLimitError`, a subclass of `SfdParseError`.
 
 ## Development
 
