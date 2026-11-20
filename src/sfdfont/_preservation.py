@@ -1,3 +1,4 @@
+from sfdfont._encoding import REMAP_KEYS, remap_identity
 from sfdfont._extended import EXTENDED_KEYS
 from sfdfont._feature_names import feature_names_opaque
 from sfdfont._font_info import INFO_KEYS
@@ -24,6 +25,7 @@ def protected_records(items):
         | EXTENDED_KEYS
         | INFO_KEYS
         | TEX_GLYPH_KEYS
+        | REMAP_KEYS
     )
     return [r for r in items if r.keyword not in editable and not math_constant(r.keyword)]
 
@@ -38,6 +40,7 @@ def check_preservation(font) -> None:
         or feature_names_opaque(font.metadata.records)
         or group_identity(font.metadata.records)
         or any(item.keyword == 'ScriptLang:' for item in font.metadata.records)
+        or remap_identity(font.metadata.records) is not None
         or legacy_identity(font.metadata.records)
         or table_identity(font.metadata.records)
         or font.payloads
@@ -73,6 +76,7 @@ def check_preservation(font) -> None:
         and font.metadata.descent == original.metadata.descent
         and protected_records(font.metadata.records) == protected_records(original.metadata.records)
         and layout_identity(font) == layout_identity(original)
+        and remap_identity(font.metadata.records) == remap_identity(original.metadata.records)
         and legacy_identity(font.metadata.records) == legacy_identity(original.metadata.records)
         and table_identity(font.metadata.records) == table_identity(original.metadata.records)
         and len(font.glyphs) == len(original.glyphs)

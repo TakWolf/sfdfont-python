@@ -197,6 +197,19 @@ legacy or other opaque dependencies are retained; positioning, kerning, caret an
 device-adjustment values can be changed. Historical unresolved glyph targets are
 preserved without repair or promotion to modern lookups.
 
+### Historical encoding remaps
+
+`SfdEncodingRemap.from_records(font.metadata.records)` decodes a `RemapN:`
+declaration and its `Remap:` entries, including entries interleaved with other
+metadata records. `to_records()` produces a declaration followed by the entries.
+Each `SfdEncodingRange(first, last, base)` describes an inclusive range of external
+32-bit codes mapped to internal encoding slots as `base + code - first`. `base`
+is an encoding-slot offset. It is not a subfont ID, and remaps are not limited to
+CID fonts. Counts and destination integer bounds are checked; order and overlapping
+ranges are preserved. The library does not apply or synchronize remaps with glyph
+encodings. Existing mappings remain protected when loading dependent data.
+See `examples/create_encoding_remap.py` for a construction example.
+
 See `examples/edit_legacy_layout.py` for a complete edit of the original VKern font.
 
 ### Edit font information

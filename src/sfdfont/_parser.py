@@ -121,8 +121,11 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    from sfdfont._encoding import REMAP_KEYS, remap_record
     from sfdfont._font_info import INFO_KEYS, info_record
 
+    if key in REMAP_KEYS:
+        return remap_record(reader, key)
     if key == 'ScriptLang:':
         from sfdfont._script_languages import script_languages_record
 

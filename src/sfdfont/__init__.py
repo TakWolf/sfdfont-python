@@ -4,6 +4,7 @@ from sfdfont.aat import SfdState, SfdStateMachine
 from sfdfont.baselines import SfdBaselineExtent, SfdBaselines, SfdBaselineScript
 from sfdfont.bitmap import SfdBitmapGlyph, SfdBitmapProperty, SfdBitmapReference, SfdBitmapStrike
 from sfdfont.cid import SfdCidInfo
+from sfdfont.encoding import SfdEncodingRange, SfdEncodingRemap
 from sfdfont.error import SfdError, SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
 from sfdfont.feature_names import SfdFeatureName, SfdFeatureNames
 from sfdfont.font import SfdFont
@@ -77,6 +78,8 @@ from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdName
 from sfdfont.woff import SfdWoffMetadata
 
 __all__ = [
+    'SfdEncodingRange',
+    'SfdEncodingRemap',
     'SfdScriptLanguage',
     'SfdScriptLanguages',
     'SfdSfntRevision',

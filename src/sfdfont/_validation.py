@@ -80,6 +80,7 @@ def contours(items) -> None:
 
 
 def validate(font, *, layout: bool = True) -> None:
+    from sfdfont._encoding import REMAP_KEYS, validate_remap
     from sfdfont._extended import EXTENDED_KEYS
     from sfdfont._font_info import INFO_KEYS, validate_info
     from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
@@ -90,7 +91,7 @@ def validate(font, *, layout: bool = True) -> None:
     from sfdfont.legacy_names import SfdStyleMapName
 
     def font_record(record) -> bool:
-        return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS | INFO_KEYS | {
+        return record.keyword in LAYOUT_KEYS | EXTENDED_KEYS | INFO_KEYS | REMAP_KEYS | {
             'BeginPrivate:',
             'ShortTable:',
             'TtTable:',
@@ -106,6 +107,7 @@ def validate(font, *, layout: bool = True) -> None:
         validate_mm(font)
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
     validate_info(font.metadata.records)
+    validate_remap(font.metadata.records)
     for names in font.metadata.language_names:
         for name in names.style_map_family_names:
             check(
