@@ -43,7 +43,17 @@ LAYOUT_KEYS = (
     CONTEXT_KEYS
     | KERN_CLASS_KEYS
     | AAT_KEYS
-    | {'Lookup:', 'TableOrder:', 'AnchorClass2:', 'AnchorClass:', 'MarkAttachClasses:', 'MarkAttachSets:'}
+    | {
+        'Lookup:',
+        'TableOrder:',
+        'AnchorClass2:',
+        'AnchorClass:',
+        'MarkAttachClasses:',
+        'MarkAttachSets:',
+        'Group:',
+        'GroupKern:',
+        'GroupVKern:',
+    }
 )
 
 

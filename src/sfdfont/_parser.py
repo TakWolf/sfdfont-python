@@ -125,6 +125,10 @@ def record(reader: Reader, key: str) -> SfdRecord:
 
     if key in INFO_KEYS:
         return info_record(reader, key)
+    if key in ('Group:', 'GroupKern:', 'GroupVKern:'):
+        from sfdfont._groups import group_record
+
+        return group_record(reader, key)
     if key == 'TeX:':
         from sfdfont._tex import tex_record
 

@@ -246,6 +246,20 @@ These models also use explicit `from_record()` / `to_record()` conversions.
 
 See `examples/create_font_info.py` for a complete example.
 
+### Retain UFO groups and raw kerning
+
+`SfdGlyphGroup(name, glyphs)` reads and writes `Group:`; `SfdGroupKerningPair`
+stores a `GroupKern:` or `GroupVKern:` record with `left`, `right` and a signed
+32-bit `offset`. Names use SFD UTF-7. These are raw UFO preservation records;
+they do not create or update native kerning classes or glyph kerning pairs.
+
+Use explicit `from_record()` / `to_record()` replacement in `font.metadata.records`.
+Historical unresolved names, duplicate records and their order are retained
+without repair. Existing group membership, pair targets and referenced native
+class names remain protected while these bindings are retained; raw offsets can
+be edited. UFO export may prefer FontForge's native kerning data over raw offsets.
+See `examples/create_groups.py` for a complete example.
+
 ### Edit TeX data
 
 `SfdTexData(kind, design_size, parameters)` retains the font-level `TeXData:`
@@ -452,6 +466,8 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
   parameter count checks and explicit preservation of reserved trailer text.
 - Font-level TeX parameters and modern/legacy glyph TeX metrics, with fixed counts,
   native integer bounds and preservation of undefined sentinels.
+- UFO glyph groups and raw horizontal/vertical kerning records, preserving unresolved
+  bindings and keeping them separate from native kerning tables.
 - Layer definitions, m/l/c operations, point flags, control coordinates, hint masks
   and TrueType point indices. Curve order is defined by the layer, including c
   commands in quadratic layers. Closing endpoints are retained without rewriting.

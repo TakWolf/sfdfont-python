@@ -25,11 +25,13 @@ def glyph_records(font):
 
 def validate_layout(font) -> None:
     from sfdfont._baselines import validate_baselines
+    from sfdfont._groups import validate_groups
     from sfdfont._mac_features import validate_mac_features
     from sfdfont._validation import cycles
 
     try:
         validate_baselines(font)
+        validate_groups(font)
         validate_mac_features(font)
         lookups = [SfdLookup.from_record(r) for r in font.metadata.records if r.keyword == 'Lookup:']
         contexts = [SfdContext.from_record(r) for r in font.metadata.records if r.keyword in CONTEXT_KEYS]
@@ -242,6 +244,10 @@ def layout_identity(font):
             from sfdfont._feature_names import feature_names_identity
 
             result.append(feature_names_identity(record))
+        elif record.keyword in ('Group:', 'GroupKern:', 'GroupVKern:'):
+            from sfdfont._groups import group_identity
+
+            result.extend(group_identity([record]))
         elif record.keyword == 'Lookup:':
             lookup = SfdLookup.from_record(record)
             result.append(('Lookup:', lookup.name, tuple(sub.name for sub in lookup.subtables)))
@@ -261,4 +267,7 @@ def layout_identity(font):
             from sfdfont._marks import mark_identity
 
             result.append(mark_identity(record))
+    from sfdfont._groups import group_class_identity
+
+    result.extend(group_class_identity(font.metadata.records))
     return result

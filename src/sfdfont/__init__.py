@@ -21,6 +21,7 @@ from sfdfont.glyph_layout import (
     SfdPositionValue,
     SfdSubstitution,
 )
+from sfdfont.groups import SfdGlyphGroup, SfdGroupKerningPair
 from sfdfont.hints import (
     SfdCounterMasks,
     SfdDiagonalHint,
@@ -72,6 +73,8 @@ from sfdfont.tex import SfdTexData, SfdTexMetrics
 from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdNamedInstance
 
 __all__ = [
+    'SfdGlyphGroup',
+    'SfdGroupKerningPair',
     'SfdTexData',
     'SfdTexMetrics',
     'SfdFeatureName',
