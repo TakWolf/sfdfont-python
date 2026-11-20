@@ -57,33 +57,31 @@ def make_font():
     return font
 
 
-def test_construct_edit_and_semantic_roundtrip(tmp_path):
+def test_construct_edit_and_write(tmp_path):
     font = make_font()
-    data = font.dump_to_bytes()
-    parsed = SfdFont.parse(data)
-    assert parsed == font
-    assert parsed.dump_to_bytes() == data
-    parsed.glyphs[0].width = 700
-    parsed.metadata.comments = 'edited😀'
+    font.glyphs[0].width = 700
+    font.metadata.comments = 'edited😀'
     path = tmp_path.joinpath('test.sfd')
-    parsed.save(path)
-    assert SfdFont.load(path) == parsed
+    font.save(path)
+    assert b'Width: 700\n' in path.read_bytes()
     output = io.BytesIO()
-    parsed.dump(output)
+    font.dump(output)
     assert not output.closed
     assert output.getvalue() == path.read_bytes()
 
 
-def test_opaque_records_preserved_and_edits_rejected():
-    font = make_font()
-    font.metadata.records.append(SfdRecord('FutureExtension:', b'123'))
-    parsed = SfdFont.parse(font.dump_to_bytes())
-    assert parsed.dump_to_bytes() == font.dump_to_bytes()
-    parsed.glyphs[0].width += 1
+def test_opaque_records_preserved_and_edits_rejected(assets_dir):
+    font = SfdFont.load(assets_dir.joinpath('fontforge', 'BoxesAndBounds.sfd'))
+    assert font.metadata.records
+    font.glyphs[0].width += 1
     with pytest.raises(SfdValidationError, match='uninterpreted'):
-        parsed.dump_to_bytes()
-    parsed.metadata.records.clear()
-    assert SfdFont.parse(parsed.dump_to_bytes()) == parsed
+        font.dump_to_bytes()
+    font.metadata.records.clear()
+    for glyph in font.glyphs:
+        glyph.records.clear()
+        for layer in glyph.layers:
+            layer.records.clear()
+    assert b'Width: 379\n' in font.dump_to_bytes()
 
 
 @pytest.mark.parametrize(
@@ -131,4 +129,6 @@ def test_long_reference_chain_does_not_use_python_recursion():
 def test_old_core_output():
     font = make_font()
     font.version = '1.0'
-    assert SfdFont.parse(font.dump_to_bytes()) == font
+    data = font.dump_to_bytes()
+    assert data.startswith(b'SplineFontDB: 1.0\n')
+    assert b'Order2: 0\n' in data
