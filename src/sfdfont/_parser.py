@@ -4,6 +4,7 @@ import math
 import re
 from typing import BinaryIO
 
+from sfdfont._layout import CONTEXT_KEYS, context_record, table_order_record
 from sfdfont._reader import Reader
 from sfdfont._strings import decode_text, decode_utf7
 from sfdfont.error import SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
@@ -54,16 +55,8 @@ _UNSUPPORTED = {
     'Lookup:',
     'KernClass:',
     'VKernClass:',
-    'ChainSub:',
-    'ChainPos:',
-    'ContextSub:',
-    'ContextPos:',
     'KernClass2:',
     'KernClass3:',
-    'ContextPos2:',
-    'ContextSub2:',
-    'ChainPos2:',
-    'ChainSub2:',
 }
 
 
@@ -103,6 +96,10 @@ def real(value: bytes | str) -> float:
 
 
 def record(reader: Reader, key: str) -> SfdRecord:
+    if key in CONTEXT_KEYS:
+        return context_record(reader, key)
+    if key == 'TableOrder:':
+        return table_order_record(reader, key)
     if key in ('StartChar:', 'BeginChars:', 'BitmapFont:', 'BDFChar:', 'BDFRefChar:'):
         reader.fail(f'misplaced structural record {key}')
     if key in ('PickledData:', 'PickledDataWithLists:'):

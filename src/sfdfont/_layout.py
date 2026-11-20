@@ -1,0 +1,184 @@
+"""Read layout record boundaries using counts and lengths from FontForge's SFD grammar.
+
+Records retain their encoded contents. This module validates their structure;
+it does not resolve lookup dependencies or apply shaping rules.
+"""
+
+import re
+
+from sfdfont._reader import Reader
+from sfdfont._strings import decode_utf7
+from sfdfont.error import SfdLimitError
+from sfdfont.record import SfdRecord
+
+CONTEXT_KEYS = {
+    'ContextPos:',
+    'ContextSub:',
+    'ChainPos:',
+    'ChainSub:',
+    'ReverseChain:',
+    'ContextPos2:',
+    'ContextSub2:',
+    'ChainPos2:',
+    'ChainSub2:',
+    'ReverseChain2:',
+}
+
+
+class LayoutReader:
+    def __init__(self, reader: Reader) -> None:
+        self.reader = reader
+
+    def peek(self) -> bytes:
+        self.reader.whitespace()
+        return self.reader.data[self.reader.pos : self.reader.pos + 1]
+
+    def expect(self, value: bytes) -> None:
+        self.reader.whitespace()
+        for char in value:
+            if self.reader.char() != bytes([char]):
+                self.reader.fail(f'expected {value!r} in layout record')
+
+    def keyword(self, value: str) -> None:
+        if self.reader.word() != value:
+            self.reader.fail(f'expected {value} in layout record')
+
+    def integer(self, minimum: int = 0, maximum: int = 65535) -> int:
+        self.reader.whitespace()
+        match = re.match(rb'[+-]?\d{1,12}(?!\d)', self.reader.data[self.reader.pos : self.reader.pos + 13])
+        if match is None:
+            self.reader.fail('expected integer in layout record')
+        self.reader.pos += len(match[0])
+        value = int(match[0])
+        if not minimum <= value <= maximum:
+            self.reader.fail('layout integer out of range')
+        return value
+
+    def count(self) -> int:
+        value = self.integer(maximum=0x7FFFFFFF)
+        if value > self.reader.limits.max_bytes:
+            self.reader.fail('layout count exceeds max_bytes', SfdLimitError)
+        return value
+
+    def counted_text(self) -> bytes:
+        length = self.count()
+        separator = self.reader.char()
+        if separator not in (b' ', b'\t') and not (length == 0 and separator in (b'\r', b'\n')):
+            self.reader.fail('missing separator before counted layout string')
+        end = self.reader.pos + length
+        if end > len(self.reader.data):
+            self.reader.fail('truncated counted layout string')
+        value = self.reader.data[self.reader.pos : end]
+        self.reader.pos = end
+        if b'\0' in value:
+            self.reader.fail('NUL in layout string')
+        return value
+
+    def quoted(self) -> str:
+        self.expect(b'"')
+        start = self.reader.pos
+        end = self.reader.data.find(b'"', start)
+        if end == -1:
+            self.reader.fail('unterminated layout string')
+        self.reader.pos = end + 1
+        return decode_utf7(self.reader.data[start:end])
+
+    def tag(self) -> None:
+        self.expect(b"'")
+        for _ in range(4):
+            if self.reader.char() in (b'', b'\r', b'\n'):
+                self.reader.fail('incomplete layout tag')
+        if self.reader.char() != b"'":
+            self.reader.fail('layout tag must contain exactly four bytes')
+
+
+def context_record(reader: Reader, key: str) -> SfdRecord:
+    start = reader.pos
+    stream = LayoutReader(reader)
+    form = reader.word()
+    if form not in ('glyph', 'class', 'coverage', 'revcov'):
+        reader.fail(f'unknown context format {form!r}')
+    modern = key.endswith('2:')
+    if modern:
+        stream.quoted()
+    else:
+        stream.integer()
+        stream.integer()
+        if stream.peek() == b"'":
+            stream.tag()
+    counts = [stream.integer() for _ in range(3)]
+    rule_count = stream.count()
+    saved = reader.pos
+    if counts[0] and reader.word() == 'Class0:':
+        stream.counted_text()
+    else:
+        reader.pos = saved
+    for count, label in zip(counts, ('Class:', 'BClass:', 'FClass:'), strict=True):
+        for _ in range(1, count):
+            stream.keyword(label)
+            stream.counted_text()
+    for _ in range(rule_count):
+        if form == 'glyph':
+            input_count = 0
+            for index, label in enumerate(('String:', 'BString:', 'FString:')):
+                stream.keyword(label)
+                value = stream.counted_text()
+                if index == 0:
+                    input_count = len(value.split())
+        else:
+            sizes = [stream.count() for _ in range(3)]
+            input_count = sizes[0]
+            if form == 'class':
+                for size, class_count, label in zip(sizes, counts, ('ClsList:', 'BClsList:', 'FClsList:'), strict=True):
+                    stream.keyword(label)
+                    for _ in range(size):
+                        stream.integer(maximum=class_count - 1)
+            else:
+                for size, label in zip(sizes, ('Coverage:', 'BCoverage:', 'FCoverage:'), strict=True):
+                    for _ in range(size):
+                        stream.keyword(label)
+                        stream.counted_text()
+        if form == 'revcov':
+            stream.keyword('Replace:')
+            stream.counted_text()
+        else:
+            for _ in range(stream.count()):
+                stream.keyword('SeqLookup:')
+                stream.integer(maximum=input_count - 1)
+                if stream.peek() == b'~':
+                    stream.expect(b'~')
+                elif modern:
+                    stream.quoted()
+                else:
+                    stream.tag()
+    labels = dict(zip(('ClassNames:', 'BClassNames:', 'FClassNames:'), counts, strict=True))
+    seen = set()
+    while True:
+        token = reader.word()
+        if token == 'EndFPST':
+            break
+        if token not in labels or token in seen:
+            reader.fail('expected class names or EndFPST')
+        seen.add(token)
+        for _ in range(labels[token]):
+            stream.quoted()
+    return SfdRecord(key, reader.data[start : reader.pos].strip())
+
+
+def table_order_record(reader: Reader, key: str) -> SfdRecord:
+    start = reader.pos
+    stream = LayoutReader(reader)
+    if stream.peek() == b"'":
+        stream.tag()
+    elif len(reader.word()) != 4:
+        reader.fail('invalid table tag')
+    for _ in range(stream.count()):
+        if stream.peek() == b'<':
+            stream.expect(b'<')
+            stream.integer()
+            stream.expect(b',')
+            stream.integer()
+            stream.expect(b'>')
+        else:
+            stream.tag()
+    return SfdRecord(key, reader.data[start : reader.pos].strip())
