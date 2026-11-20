@@ -34,6 +34,9 @@ SIGNED_KEYS = {
     'OS2FamilyClass:',
 }
 BOOL_KEYS = {
+    'UseUniqueID:',
+    'UseXUID:',
+    'NeedsXUIDChange:',
     'OS2_WeightWidthSlopeOnly:',
     'OS2_UseTypoMetrics:',
     'HheadAOffset:',
@@ -50,8 +53,9 @@ ALIASES = {
     'HHeadAOffset:': 'HheadAOffset:',
     'HHeadDOffset:': 'HheadDOffset:',
 }
-INT32_KEYS = {'woffMajor:', 'woffMinor:'}
-SCALAR_KEYS = SIGNED_KEYS | BOOL_KEYS | INT32_KEYS | set(ALIASES) | {'PfmFamily:', 'StyleMap:'}
+INT32_KEYS = {'woffMajor:', 'woffMinor:', 'UniqueID:'}
+INT64_KEYS = {'CreationTime:', 'ModificationTime:'}
+SCALAR_KEYS = SIGNED_KEYS | BOOL_KEYS | INT32_KEYS | INT64_KEYS | set(ALIASES) | {'PfmFamily:', 'StyleMap:'}
 REAL_KEYS = {'ItalicAngle:', 'UnderlinePosition:', 'UnderlineWidth:', 'StrokeWidth:', 'UFOAscent:', 'UFODescent:'}
 _REAL = re.compile(rb'[+-]?(?:\d+(?:[.,]\d*)?|[.,]\d+)(?:[eE][+-]?\d+)?')
 
@@ -75,7 +79,13 @@ def decode_metric(item):
         raise SfdParseError('unexpected font metric kind')
     key = metric_key(item.keyword)
     data = item.value.strip()
-    if key == 'StyleMap:':
+    if key in INT64_KEYS:
+        if not re.fullmatch(rb'[+-]?\d{1,19}', data):
+            raise SfdParseError('invalid 64-bit font metric')
+        value = int(data)
+        if not -0x8000000000000000 <= value <= 0x7FFFFFFFFFFFFFFF:
+            raise SfdParseError('font metric exceeds 64-bit storage')
+    elif key == 'StyleMap:':
         if not re.fullmatch(rb'#?[+-]?(?:0[xX])?[0-9a-fA-F]{1,8}', data):
             raise SfdParseError('invalid StyleMap hexadecimal value')
         value = int(data.lstrip(b'#'), 16)
@@ -105,6 +115,8 @@ def encode_metric(value):
     low, high = (-32768, 32767) if key in SIGNED_KEYS | {'StyleMap:'} else (0, 255 if key == 'PfmFamily:' else 1)
     if key in INT32_KEYS:
         low, high = -0x80000000, 0x7FFFFFFF
+    elif key in INT64_KEYS:
+        low, high = -0x8000000000000000, 0x7FFFFFFFFFFFFFFF
     number(value.value, 'font metric value', low, high)
     data = f'0x{value.value & 0xFFFFFFFF:04x}'.encode() if key == 'StyleMap:' else str(value.value).encode()
     return SfdRecord(value.keyword, data)

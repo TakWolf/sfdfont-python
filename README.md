@@ -252,6 +252,14 @@ These models also use explicit `from_record()` / `to_record()` conversions.
 
 See `examples/create_font_info.py` for a complete example.
 
+Header information also uses `SfdFontMetric`: CreationTime and ModificationTime
+retain signed 64-bit seconds since 1970, UniqueID uses signed 32-bit storage, and
+UseUniqueID, UseXUID and NeedsXUIDChange are integer 0/1 flags. Timestamps are not
+refreshed and identifiers are not generated automatically. `SfdSfntRevision.value`
+retains the raw unsigned 32-bit pattern of the 16.16 revision field, including
+FontForge's `0x44445555` unset sentinel; it is independent of the version string.
+See `examples/create_font_header.py`.
+
 ### Edit WOFF metadata
 
 `SfdWoffMetadata(text)` reads and writes the `woffMetadata:` SFD UTF-7 string,
@@ -499,6 +507,8 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
 - Optical DesignSize, optional ranges/style IDs and multilingual style names.
 - Editable OS/2, PFM and hhea numeric metrics, styles, offset flags and legacy aliases.
 - Finite real-valued italic angle, underline, stroke-width and UFO metrics.
+- Raw sfnt revision bits, signed 64-bit timestamps and identifier values/flags,
+  without automatic timestamp or identifier updates.
 - PANOSE byte values, OS/2 Unicode/code-page bitmasks and fixed four-byte vendor IDs.
 - OpenType feature labels and extended character-variant names, with language and
   parameter count checks and explicit preservation of reserved trailer text.
