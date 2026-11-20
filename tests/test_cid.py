@@ -1,6 +1,17 @@
 import pytest
 
-from sfdfont import SfdCidInfo, SfdFont, SfdParseError, SfdValidationError
+from sfdfont import (
+    SfdBaselines,
+    SfdCidInfo,
+    SfdFont,
+    SfdJustification,
+    SfdJustificationScript,
+    SfdMacFeature,
+    SfdMacFeatures,
+    SfdMacName,
+    SfdParseError,
+    SfdValidationError,
+)
 from sfdfont._layout import LAYOUT_KEYS
 from sfdfont._parser import _parse_font
 from sfdfont._reader import Reader
@@ -62,4 +73,25 @@ def test_cid_recursive_and_metadata_validation():
     font.subfonts = [SfdFont()]
     font.cid.supplement = -1
     with pytest.raises(SfdValidationError, match='supplement'):
+        font.validate()
+
+
+@pytest.mark.parametrize(
+    'model',
+    [
+        SfdBaselines('BaseHoriz:'),
+        SfdBaselines('BaseVert:'),
+        SfdJustification([SfdJustificationScript()]),
+        SfdMacFeatures([SfdMacFeature(names=[SfdMacName(data=b'Custom')])]),
+    ],
+)
+def test_cid_extended_layout_belongs_to_container(model):
+    item = model.to_record()
+    subfont = SfdFont()
+    font = SfdFont(cid=SfdCidInfo(), subfonts=[subfont])
+    font.metadata.records.append(item)
+    font.validate()
+    font.metadata.records.clear()
+    subfont.metadata.records.append(item)
+    with pytest.raises(SfdValidationError, match='CID layout belongs in the container'):
         font.validate()

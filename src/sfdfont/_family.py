@@ -185,6 +185,7 @@ def validate_mm(font) -> None:
 
 
 def validate_cid(font) -> None:
+    from sfdfont._extended import EXTENDED_KEYS
     from sfdfont._layout import LAYOUT_KEYS
     from sfdfont._validation import check, number, validate
 
@@ -204,7 +205,8 @@ def validate_cid(font) -> None:
         names.add(subfont.metadata.font_name)
         check(not subfont.bitmap_strikes, 'CID bitmap strikes must be stored in the container')
         check(
-            not any(r.keyword in LAYOUT_KEYS for r in subfont.metadata.records), 'CID layout belongs in the container'
+            not any(r.keyword in LAYOUT_KEYS | EXTENDED_KEYS for r in subfont.metadata.records),
+            'CID layout belongs in the container',
         )
         check(all(g.glyph_id < font.encoding_size for g in subfont.glyphs), 'CID glyph exceeds container capacity')
         validate(subfont, layout=False)

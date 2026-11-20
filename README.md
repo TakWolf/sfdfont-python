@@ -421,7 +421,8 @@ See `examples/edit_private.py` for an edit of Ambrosia's blue zones.
   not interpolate outlines or recompute the default font when weights change.
 - CID containers through `font.cid` (registry, ordering, supplement and version)
   and `font.subfonts`. CID layout is stored in the container; outline references
-  are checked within each subfont. `iter_glyphs()` and name/Unicode queries include
+  are checked within each subfont. BASE, JSTF and Mac feature definitions also belong
+  in the container. `iter_glyphs()` and name/Unicode queries include
   the subfonts in stored order. Encoding queries return the first matching subfont.
 - SFD 3.1/3.2 undo/redo history is retained in the corresponding layer's `records`,
   with operation boundaries, nested outlines and binary payloads checked. Historical
