@@ -8,6 +8,7 @@ from sfdfont.encoding import SfdEncodingRange, SfdEncodingRemap
 from sfdfont.error import SfdError, SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
 from sfdfont.feature_names import SfdFeatureName, SfdFeatureNames
 from sfdfont.font import SfdFont
+from sfdfont.font_text import SfdFontText
 from sfdfont.gasp import SfdGaspRange, SfdGaspTable
 from sfdfont.glyph import SfdAlternateUnicode, SfdGlyph
 from sfdfont.glyph_layout import (
@@ -78,6 +79,7 @@ from sfdfont.variation import SfdAxisMap, SfdMacName, SfdMultipleMaster, SfdName
 from sfdfont.woff import SfdWoffMetadata
 
 __all__ = [
+    'SfdFontText',
     'SfdEncodingRange',
     'SfdEncodingRemap',
     'SfdScriptLanguage',

@@ -296,6 +296,32 @@ data and does not check a generated WOFF header. While metadata text is retained
 the existing protection for glyph identities and outlines remains in effect.
 See `examples/create_woff_metadata.py` for a complete example.
 
+### Edit plain font metadata
+
+`SfdFontText(keyword, text)` reads and writes `FONDName:`, `DefaultBaseFilename:`
+and `XUID:` as plain line text, including UTF-8 and legacy text on input.
+Quotes and SFD UTF-7 sequences in these fields remain literal text.
+
+```python
+from sfdfont import SfdFontText
+
+font.metadata.set_text(SfdFontText('DefaultBaseFilename:', 'Example-Regular'))
+name = font.metadata.find_text('DefaultBaseFilename:')
+name.text = 'Example-Bold'
+font.metadata.set_text(name)
+```
+
+`find_text()` returns an independent model or `None`; `set_text()` replaces the
+record in place or appends a missing one. Existing duplicate records retain their
+order, but these helpers reject ambiguous duplicates. Individual records also
+support explicit `from_record()` / `to_record()` conversion.
+
+Line breaks, NUL, trailing continuation backslashes and outer spaces/tabs that
+would change on writing are rejected. `XUID` remains uninterpreted PostScript text;
+its numeric-array semantics are not checked. `UseXUID` and `NeedsXUIDChange` remain
+independent metrics. Retaining these records continues to protect glyph identities
+and outlines while allowing text edits. See `examples/create_font_text.py`.
+
 ### Retain legacy style mapping names
 
 `SfdStyleMapName(keyword, name, quoted=True)` reads and writes `OS2StyleName:`,

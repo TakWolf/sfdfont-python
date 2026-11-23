@@ -1,4 +1,5 @@
 from sfdfont._feature_names import decode_feature_names
+from sfdfont._font_text import FONT_TEXT_KEYS, decode_font_text
 from sfdfont._gasp import decode_gasp
 from sfdfont._legacy_names import LEGACY_NAME_KEYS, decode_style_map_name
 from sfdfont._metrics import REAL_KEYS, SCALAR_KEYS, decode_metric, decode_real_metric, metric_key
@@ -15,11 +16,14 @@ INFO_KEYS = (
     | REAL_KEYS
     | OS2_KEYS
     | LEGACY_NAME_KEYS
+    | FONT_TEXT_KEYS
     | {'GaspTable:', 'DesignSize:', 'OtfFeatName:', 'TeXData:', 'woffMetadata:', 'sfntRevision:'}
 )
 
 
 def decode_info(item):
+    if item.keyword in FONT_TEXT_KEYS:
+        return decode_font_text(item)
     if item.keyword == 'sfntRevision:':
         return decode_revision(item)
     if item.keyword in LEGACY_NAME_KEYS:
@@ -56,8 +60,8 @@ def validate_info(records):
     try:
         for item in records:
             if item.keyword in INFO_KEYS:
-                if item.keyword in LEGACY_NAME_KEYS:
-                    decode_style_map_name(item)
+                if item.keyword in LEGACY_NAME_KEYS | FONT_TEXT_KEYS:
+                    decode_info(item)
                     continue
                 key = metric_key(item.keyword)
                 if item.keyword == 'OtfFeatName:':

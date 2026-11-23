@@ -2,6 +2,7 @@ from sfdfont._encoding import REMAP_KEYS, remap_identity
 from sfdfont._extended import EXTENDED_KEYS
 from sfdfont._feature_names import feature_names_opaque
 from sfdfont._font_info import INFO_KEYS
+from sfdfont._font_text import FONT_TEXT_KEYS
 from sfdfont._glyph_layout import GLYPH_LAYOUT_KEYS
 from sfdfont._groups import group_identity
 from sfdfont._hints import HINT_KEYS, hint_identity
@@ -36,6 +37,7 @@ def check_preservation(font) -> None:
         return
     opaque = bool(
         protected_records(font.metadata.records)
+        or any(item.keyword in FONT_TEXT_KEYS for item in font.metadata.records)
         or any(item.keyword == 'woffMetadata:' for item in font.metadata.records)
         or feature_names_opaque(font.metadata.records)
         or group_identity(font.metadata.records)

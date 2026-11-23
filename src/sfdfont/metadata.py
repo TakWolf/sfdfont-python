@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import copy, deepcopy
 from typing import Any
 
+from sfdfont.font_text import SfdFontText
 from sfdfont.legacy_names import SfdStyleMapName
 from sfdfont.metrics import SfdFontMetric, SfdFontRealMetric
 from sfdfont.record import SfdRecord
@@ -197,6 +198,31 @@ class SfdMetadata:
         if not items:
             return None
         return SfdFontRealMetric.from_record(items[0]) if keyword in REAL_KEYS else SfdFontMetric.from_record(items[0])
+
+    def find_text(self, keyword: str) -> SfdFontText | None:
+        """Decode an independent text value; duplicate records are ambiguous."""
+        from sfdfont._font_text import FONT_TEXT_KEYS
+        from sfdfont.error import SfdValidationError
+
+        if keyword not in FONT_TEXT_KEYS:
+            raise SfdValidationError('invalid font text keyword')
+        items = [item for item in self.records if item.keyword == keyword]
+        if len(items) > 1:
+            raise SfdValidationError('duplicate font text record')
+        return SfdFontText.from_record(items[0]) if items else None
+
+    def set_text(self, value: SfdFontText) -> None:
+        """Replace one text record or append it, preserving other records."""
+        from sfdfont.error import SfdValidationError
+
+        replacement = value.to_record()
+        indices = [i for i, item in enumerate(self.records) if item.keyword == value.keyword]
+        if len(indices) > 1:
+            raise SfdValidationError('duplicate font text record')
+        if indices:
+            self.records[indices[0]] = replacement
+        else:
+            self.records.append(replacement)
 
     def set_metric(self, metric: SfdFontMetric | SfdFontRealMetric) -> None:
         """Replace a metric or append it, preserving all other encoded records."""
