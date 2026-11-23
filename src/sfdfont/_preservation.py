@@ -61,78 +61,62 @@ def check_preservation(font) -> None:
     )
     if not opaque:
         return
-    same = (
-        font.version == original.version
-        and font.multilayer == original.multilayer
-        and font.cid == original.cid
-        and [[(g.glyph_id, g.name, g.encoding) for g in sub.glyphs] for sub in font.subfonts]
-        == [[(g.glyph_id, g.name, g.encoding) for g in sub.glyphs] for sub in original.subfonts]
-        and font.layer_infos == original.layer_infos
-        and font.encoding_size == original.encoding_size
-        and font.encoding_aliases == original.encoding_aliases
-        and font.payloads == original.payloads
-        and font.metadata.encoding == original.metadata.encoding
-        and font.metadata.ascent == original.metadata.ascent
-        and font.metadata.descent == original.metadata.descent
-        and protected_records(font.metadata.records) == protected_records(original.metadata.records)
-        and layout_identity(font) == layout_identity(original)
-        and remap_identity(font.metadata.records) == remap_identity(original.metadata.records)
-        and legacy_identity(font.metadata.records) == legacy_identity(original.metadata.records)
-        and table_identity(font.metadata.records) == table_identity(original.metadata.records)
-        and len(font.glyphs) == len(original.glyphs)
-    )
-    if same:
-        for glyph, before in zip(font.glyphs, original.glyphs, strict=True):
-            if (
-                glyph.name,
-                glyph.glyph_id,
-                glyph.encoding,
-                glyph.unicode,
-                glyph.alternate_unicodes,
-                glyph.layer_count,
-                [
-                    (
-                        v.index,
-                        v.contours,
-                        v.references,
-                        protected_records(v.records),
-                        legacy_identity(v.records),
-                        hint_identity(v.records),
-                        v.images,
-                    )
-                    for v in glyph.layers
-                ],
-                protected_records(glyph.records),
-                legacy_identity(glyph.records),
-                hint_identity(glyph.records),
-                glyph.payloads,
-            ) != (
-                before.name,
-                before.glyph_id,
-                before.encoding,
-                before.unicode,
-                before.alternate_unicodes,
-                before.layer_count,
-                [
-                    (
-                        v.index,
-                        v.contours,
-                        v.references,
-                        protected_records(v.records),
-                        legacy_identity(v.records),
-                        hint_identity(v.records),
-                        v.images,
-                    )
-                    for v in before.layers
-                ],
-                protected_records(before.records),
-                legacy_identity(before.records),
-                hint_identity(before.records),
-                before.payloads,
-            ):
-                same = False
-                break
-    if not same:
+    if family_identity(font) != family_identity(original):
         raise SfdValidationError(
             'cannot change identities, outlines or uninterpreted data while retained records depend on them'
         )
+
+
+def glyph_identity(glyph):
+    return (
+        glyph.name,
+        glyph.glyph_id,
+        glyph.encoding,
+        glyph.unicode,
+        glyph.alternate_unicodes,
+        glyph.layer_count,
+        [
+            (
+                layer.index,
+                layer.contours,
+                layer.references,
+                protected_records(layer.records),
+                legacy_identity(layer.records),
+                hint_identity(layer.records),
+                layer.images,
+            )
+            for layer in glyph.layers
+        ],
+        protected_records(glyph.records),
+        legacy_identity(glyph.records),
+        hint_identity(glyph.records),
+        glyph.payloads,
+    )
+
+
+def family_identity(font):
+    # A container's opaque records can depend on any child's structure. Compare
+    # children against the container snapshot even if a child has no opaque data
+    # or was replaced by a newly constructed object without its own snapshot.
+    return (
+        font.version,
+        font.multilayer,
+        font.cid,
+        font.layer_infos,
+        font.encoding_size,
+        font.encoding_aliases,
+        font.payloads,
+        font.metadata.encoding,
+        font.metadata.ascent,
+        font.metadata.descent,
+        protected_records(font.metadata.records),
+        layout_identity(font),
+        remap_identity(font.metadata.records),
+        legacy_identity(font.metadata.records),
+        table_identity(font.metadata.records),
+        [glyph_identity(glyph) for glyph in font.glyphs],
+        [family_identity(subfont) for subfont in font.subfonts],
+        None
+        if font.multiple_master is None
+        else [family_identity(instance) for instance in font.multiple_master.instances],
+    )

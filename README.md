@@ -610,8 +610,9 @@ settings, Private values, ShortTable words/names and validated layout/MATH/hint,
 baseline, justification and Mac feature name
 parameters can be edited. Glyph identities, outlines,
 layer structure and uninterpreted data remain protected when retained records may
-depend on them. Incompatible edits raise `SfdValidationError` before the destination
-file is opened. Explicitly removing dependent opaque data permits supported geometry
+depend on them. Container-level dependencies also protect these structures in CID
+subfonts and Multiple Master instances. Incompatible edits raise `SfdValidationError`
+before the destination file is opened. Explicitly removing dependent opaque data permits supported geometry
 edits; keep a source copy when that data matters.
 
 Duplicate glyph IDs/encoding slots, dangling/cyclic references and inconsistent
