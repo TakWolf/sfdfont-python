@@ -24,6 +24,13 @@ def unicode_value(value: int, name: str, *, unassigned: bool = True) -> None:
     check(not 0xD800 <= value <= 0xDFFF, f'surrogate in {name}')
 
 
+def ascii_token(value: str, name: str) -> None:
+    check(
+        isinstance(value, str) and bool(value) and value.isascii() and not any(c.isspace() or c == '\0' for c in value),
+        f'invalid {name}',
+    )
+
+
 def cycles(graph: dict, name: str) -> None:
     # Iterative DFS avoids exhausting Python's recursion limit on long chains.
     finished = set()
@@ -242,9 +249,30 @@ def validate(font, *, layout: bool = True) -> None:
         number(strike.pixelsize, 'bitmap pixelsize', 1)
         number(strike.ascent, 'bitmap ascent', 0)
         number(strike.descent, 'bitmap descent', 0)
+        number(strike.depth, 'bitmap depth', 1, 8)
         check(strike.depth in (1, 2, 4, 8), 'unsupported bitmap depth')
+        if strike.foundry is not None:
+            ascii_token(strike.foundry, 'bitmap foundry')
+        if strike.resolution is not None:
+            number(strike.resolution, 'bitmap resolution')
+        for prop in strike.properties:
+            ascii_token(prop.name, 'bitmap property name')
+            number(prop.type, 'bitmap property type', 0, 19)
+            kind = prop.type & ~0x10
+            check(kind in (0, 1, 2, 3), 'invalid bitmap property type')
+            if kind in (0, 1):
+                check(
+                    isinstance(prop.value, str) and not any(c in prop.value for c in '\r\n\0"'),
+                    'invalid bitmap property string',
+                )
+            else:
+                number(prop.value, 'bitmap property integer')
         seen = set()
         for glyph in strike.glyphs:
+            number(glyph.glyph_id, 'bitmap glyph ID', 0)
+            number(glyph.encoding, 'bitmap encoding', -1)
+            if glyph.vertical_advance is not None:
+                number(glyph.vertical_advance, 'bitmap vertical advance')
             check(glyph.glyph_id in bitmap_gids, f'bitmap refers to missing glyph {glyph.glyph_id}')
             check(glyph.glyph_id not in seen, 'duplicate bitmap glyph ID')
             seen.add(glyph.glyph_id)
@@ -260,6 +288,11 @@ def validate(font, *, layout: bool = True) -> None:
                 check(all(v < 1 << strike.depth for v in glyph.data), 'bitmap sample exceeds depth')
         graph = {gid: [] for gid in seen}
         for ref in strike.references:
+            number(ref.source, 'bitmap reference source', 0)
+            number(ref.target, 'bitmap reference target', 0)
+            number(ref.x, 'bitmap reference x')
+            number(ref.y, 'bitmap reference y')
+            check(isinstance(ref.selected, bool), 'invalid bitmap reference selected flag')
             check(ref.source in seen and ref.target in seen, 'dangling bitmap reference')
             graph[ref.source].append(ref.target)
         cycles(graph, 'bitmap')
