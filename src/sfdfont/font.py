@@ -185,6 +185,12 @@ class SfdFont:
 
     def find_glyph_by_encoding(self, encoding: int) -> SfdGlyph | None:
         """Find an encoding slot, including DupEnc aliases; slots are not Unicode."""
+        if self.subfonts:
+            for subfont in self.subfonts:
+                glyph = subfont.find_glyph_by_encoding(encoding)
+                if glyph is not None:
+                    return glyph
+            return None
         if encoding in self.encoding_aliases:
             target = self.encoding_aliases[encoding]
             return next((glyph for glyph in self.iter_glyphs() if glyph.glyph_id == target), None)

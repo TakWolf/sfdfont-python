@@ -95,3 +95,28 @@ def test_cid_extended_layout_belongs_to_container(model):
     subfont.metadata.records.append(item)
     with pytest.raises(SfdValidationError, match='CID layout belongs in the container'):
         font.validate()
+
+
+@pytest.mark.parametrize('first_is_alias', [False, True])
+def test_cid_encoding_queries_respect_subfont_order_and_local_aliases(first_is_alias):
+    from sfdfont import SfdGlyph
+
+    first = SfdFont(glyphs=[SfdGlyph('first', 0, 65, 65)])
+    second = SfdFont(glyphs=[SfdGlyph('second', 0, 66, 66)])
+    if first_is_alias:
+        first.encoding_aliases[66] = 0
+    else:
+        first.glyphs[0].encoding = 66
+        second.glyphs[0].encoding = 65
+        second.encoding_aliases[66] = 0
+    first.metadata.font_name = 'First'
+    second.metadata.font_name = 'Second'
+    second.encoding_aliases[67] = 0
+    font = SfdFont(cid=SfdCidInfo(), subfonts=[first, second])
+    for current in (font, SfdFont.parse(font.dump_to_bytes())):
+        assert current.find_glyph_by_encoding(66) is current.subfonts[0].glyphs[0]
+        assert current.find_glyph_by_encoding(67) is current.subfonts[1].glyphs[0]
+        assert current.find_glyph_by_encoding(68) is None
+        assert current.find_glyph_by_encoding(-1) is None
+        current.subfonts.reverse()
+        assert current.find_glyph_by_encoding(66) is current.subfonts[0].glyphs[0]
