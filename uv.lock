@@ -104,7 +104,7 @@ wheels = [
 
 [[package]]
 name = "sfdfont"
-version = "0.0.1"
+version = "0.0.2"
 source = { editable = "." }
 
 [package.dev-dependencies]
