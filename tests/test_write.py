@@ -133,3 +133,41 @@ def test_old_core_output():
     data = font.dump_to_bytes()
     assert data.startswith(b'SplineFontDB: 1.0\n')
     assert b'Order2: 0\n' in data
+
+
+@pytest.mark.parametrize('scope', ['font', 'glyph', 'layer'])
+@pytest.mark.parametrize(
+    ('keyword', 'value'),
+    [
+        ('Refer:', b'999 -1 N 1 0 0 1 0 0 0'),
+        ('Ref:', b'65 -1 N 1 0 0 1 0 0 0'),
+        ('AltUni:', b'66'),
+        ('AltUni2:', b'000042.ffffffff.0'),
+        ('Comments:', b'hello'),
+        ('Width:', b'700'),
+        ('GridOrder2:', b'1'),
+        ('StartChar:', b'A'),
+    ],
+)
+def test_structural_raw_records_are_rejected_before_saving(tmp_path, scope, keyword, value):
+    font = SfdFont(glyphs=[SfdGlyph('A', 0, layers=[SfdLayer(1)])])
+    items = {
+        'font': font.metadata.records,
+        'glyph': font.glyphs[0].records,
+        'layer': font.glyphs[0].layers[0].records,
+    }[scope]
+    items.append(SfdRecord(keyword, value))
+    with pytest.raises(SfdValidationError, match='structural'):
+        font.validate()
+    path = tmp_path.joinpath('keep.sfd')
+    path.write_bytes(b'keep')
+    with pytest.raises(SfdValidationError, match='structural'):
+        font.save(path)
+    assert path.read_bytes() == b'keep'
+
+
+def test_unknown_raw_records_still_roundtrip_in_all_scopes():
+    font = SfdFont(glyphs=[SfdGlyph('A', 0, layers=[SfdLayer(1)])])
+    for items in (font.metadata.records, font.glyphs[0].records, font.glyphs[0].layers[0].records):
+        items.append(SfdRecord('Unknown:', b'preserved'))
+    assert SfdFont.parse(font.dump_to_bytes()) == font

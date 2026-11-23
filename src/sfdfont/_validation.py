@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 
 from sfdfont._layout import LAYOUT_KEYS, version_matches
+from sfdfont._structure import STRUCTURAL_KEYS
 from sfdfont.error import SfdParseError, SfdValidationError
 
 
@@ -106,6 +107,13 @@ def validate(font, *, layout: bool = True) -> None:
 
         validate_mm(font)
     check(font.version in ('1.0', '2.0', '3.0', '3.1', '3.2'), 'unsupported SFD version')
+    record_lists = [font.metadata.records]
+    for glyph in font.glyphs:
+        record_lists.append(glyph.records)
+        record_lists.extend(layer.records for layer in glyph.layers)
+    for items in record_lists:
+        for record in items:
+            check(record.keyword not in STRUCTURAL_KEYS, f'misplaced structural record {record.keyword}')
     validate_info(font.metadata.records)
     validate_remap(font.metadata.records)
     for names in font.metadata.language_names:

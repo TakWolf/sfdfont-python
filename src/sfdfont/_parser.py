@@ -16,6 +16,7 @@ from sfdfont._layout import (
 from sfdfont._math import GLYPH_MATH_KEYS, math_constant
 from sfdfont._reader import Reader
 from sfdfont._strings import decode_text, decode_utf7
+from sfdfont._structure import STRUCTURAL_KEYS, TEXT_FIELDS
 from sfdfont.error import SfdLimitError, SfdParseError, SfdUnsupportedError, SfdValidationError
 from sfdfont.font import SfdFont
 from sfdfont.glyph import SfdAlternateUnicode, SfdGlyph
@@ -26,15 +27,6 @@ from sfdfont.outline import SfdContour, SfdPoint, SfdSpiroPoint
 from sfdfont.record import SfdRecord
 from sfdfont.reference import SfdReference
 
-_TEXT_FIELDS = {
-    'FontName:': 'font_name',
-    'FullName:': 'full_name',
-    'FamilyName:': 'family_name',
-    'Weight:': 'weight',
-    'Copyright:': 'copyright',
-    'Version:': 'version',
-    'Encoding:': 'encoding',
-}
 _MULTILINE = {
     'TtInstrs:': 'EndTTInstrs',
     'TtTable:': 'EndTTInstrs',
@@ -189,22 +181,7 @@ def record(reader: Reader, key: str) -> SfdRecord:
         return kern_class_record(reader, key)
     if key == 'Lookup:':
         return lookup_record(reader, key)
-    if key in (
-        'StartChar:',
-        'BeginChars:',
-        'BitmapFont:',
-        'BDFChar:',
-        'BDFRefChar:',
-        'DupEnc:',
-        'BeginSubrs:',
-        'OrigType1:',
-        'TtfInstrs:',
-        'TtfTable:',
-        'FillGradient:',
-        'StrokeGradient:',
-        'FillPattern:',
-        'StrokePattern:',
-    ):
+    if key in STRUCTURAL_KEYS:
         reader.fail(f'misplaced structural record {key}')
     if key in ('PickledData:', 'PickledDataWithLists:'):
         start = reader.pos
@@ -608,8 +585,8 @@ def _parse_font(reader: Reader, version: str | None = None, *, cid_child: bool =
             data = reader.line()
             value = integer(data) if key == 'Supplement:' else real(data) if key == 'CIDVersion:' else decode_text(data)
             setattr(font.cid, field[key], value)
-        elif key in _TEXT_FIELDS:
-            setattr(font.metadata, _TEXT_FIELDS[key], decode_text(reader.line()))
+        elif key in TEXT_FIELDS:
+            setattr(font.metadata, TEXT_FIELDS[key], decode_text(reader.line()))
         elif key in ('UComments:', 'FontLog:'):
             setattr(font.metadata, 'comments' if key == 'UComments:' else 'font_log', string(reader.line()))
         elif key in ('Ascent:', 'Descent:'):

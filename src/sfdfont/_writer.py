@@ -25,35 +25,8 @@ def scalar(value: float) -> bytes:
 
 def records(items) -> bytes:
     result = []
-    forbidden = {
-        'SplineFontDB:',
-        'Encoding:',
-        'Width:',
-        'VWidth:',
-        'Flags:',
-        'Layer:',
-        'LayerCount:',
-        'FontName:',
-        'FullName:',
-        'FamilyName:',
-        'Copyright:',
-        'Weight:',
-        'Version:',
-        'Ascent:',
-        'Descent:',
-        'UComments:',
-        'FontLog:',
-        'LangName:',
-        'Order2:',
-        'DupEnc:',
-        'MultiLayer:',
-        'Registry:',
-        'Ordering:',
-        'Supplement:',
-        'CIDVersion:',
-    }
     for item in items:
-        if item.keyword in forbidden or not isinstance(item.value, bytes):
+        if not isinstance(item.value, bytes):
             raise SfdValidationError(f'reserved or invalid raw record {item.keyword!r}')
         encoded = plain(item.keyword) + b' ' + item.value + b'\n'
         reader = Reader(encoded)
